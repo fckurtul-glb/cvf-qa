@@ -46,11 +46,6 @@ export default function DashboardPage() {
       });
   }, [router]);
 
-  function handleLogout() {
-    localStorage.removeItem('token');
-    router.replace('/auth/login');
-  }
-
   if (loading) {
     return (
       <div style={styles.wrapper}>
@@ -82,15 +77,11 @@ export default function DashboardPage() {
       <div style={styles.container}>
         <div style={styles.header}>
           <div>
-            <div style={styles.logo}>QA</div>
             <h1 style={styles.title}>
               Hoş geldiniz{user.name ? `, ${user.name}` : ''}
             </h1>
             <p style={styles.subtitle}>{user.organization.name}</p>
           </div>
-          <button onClick={handleLogout} style={styles.logoutBtn}>
-            Çıkış Yap
-          </button>
         </div>
 
         <div style={styles.grid}>
@@ -140,19 +131,6 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'flex-start',
     marginBottom: 32,
   },
-  logo: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    background: 'linear-gradient(135deg, #2E86AB, #3A9BC5)',
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-    marginBottom: 12,
-  },
   title: {
     fontSize: 26,
     margin: '0 0 4px',
@@ -162,17 +140,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 15,
     color: '#888',
     margin: 0,
-  },
-  logoutBtn: {
-    padding: '8px 20px',
-    fontSize: 14,
-    fontWeight: 500,
-    color: '#555',
-    background: '#fff',
-    border: '1px solid #d0d0d0',
-    borderRadius: 8,
-    cursor: 'pointer',
-    marginTop: 8,
   },
   grid: {
     display: 'grid',

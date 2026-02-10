@@ -1,9 +1,11 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import fjwt from '@fastify/jwt';
+import multipart from '@fastify/multipart';
 import { config } from './config/env';
 import { errorHandler } from './middleware/error-handler';
 import { authRoutes } from './modules/auth/routes';
+import { userRoutes } from './modules/users/routes';
 
 const app = Fastify({
   logger: {
@@ -27,6 +29,10 @@ async function bootstrap() {
     secret: config.JWT_SECRET,
   });
 
+  await app.register(multipart, {
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+  });
+
   // ── Error Handler ──
   app.setErrorHandler(errorHandler);
 
@@ -39,6 +45,7 @@ async function bootstrap() {
 
   // ── Routes ──
   await app.register(authRoutes, { prefix: '/auth' });
+  await app.register(userRoutes, { prefix: '/users' });
 
   // ── Start ──
   const port = Number(config.PORT);

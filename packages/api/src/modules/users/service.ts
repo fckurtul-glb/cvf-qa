@@ -3,17 +3,16 @@ import { config } from '../../config/env';
 import crypto from 'crypto';
 import { parse } from 'csv-parse/sync';
 import { hashPassword } from '../../utils/encryption';
-import { validateEmail, validateCSVHeaders } from '@cvf-qa/shared';
 
 interface CSVRow {
+  ad: string;
+  soyad: string;
   email: string;
-  name?: string;
-  department: string;
-  stakeholder_group: string;
-  role?: string;
+  birim: string;
+  unvan?: string;
 }
 
-const REQUIRED_HEADERS = ['email', 'department', 'stakeholder_group'];
+const REQUIRED_HEADERS = ['ad', 'soyad', 'email', 'birim'];
 
 class UserService {
   private hashEmail(email: string): string {
@@ -27,94 +26,102 @@ class UserService {
     return iv.toString('hex') + ':' + Buffer.concat([cipher.update(value, 'utf8'), cipher.final()]).toString('hex');
   }
 
+  private decryptField(encrypted: string): string {
+    const [ivHex, dataHex] = encrypted.split(':');
+    const key = Buffer.from(config.ENCRYPTION_KEY, 'hex').subarray(0, 32);
+    const decipher = crypto.createDecipheriv('aes-256-cbc', key, Buffer.from(ivHex, 'hex'));
+    return decipher.update(Buffer.from(dataHex, 'hex')) + decipher.final('utf8');
+  }
+
   // ── CSV Toplu Yükleme ──
   async importCSV(orgId: string, csvContent: string, importedBy: string) {
-    const records = parse(csvContent, { columns: true, skip_empty_lines: true, trim: true }) as CSVRow[];
+    const records = parse(csvContent, { columns: true, skip_empty_lines: true, trim: true, bom: true }) as CSVRow[];
+
+    if (records.length === 0) throw new Error('CSV dosyası boş');
 
     // Header validasyonu
-    if (records.length === 0) throw new Error('CSV dosyası boş');
-    const headers = Object.keys(records[0]);
-    const headerCheck = validateCSVHeaders(headers, REQUIRED_HEADERS);
-    if (!headerCheck.valid) throw new Error(`Eksik sütunlar: ${headerCheck.missing.join(', ')}`);
+    const headers = Object.keys(records[0]).map((h) => h.toLowerCase());
+    const missing = REQUIRED_HEADERS.filter((h) => !headers.includes(h));
+    if (missing.length > 0) throw new Error(`Eksik sütunlar: ${missing.join(', ')}`);
 
-    // Kurum ve mevcut birimleri al
+    // Kurum kontrolü
     const org = await prisma.organization.findUnique({ where: { id: orgId } });
     if (!org) throw new Error('Kurum bulunamadı');
 
+    // Mevcut birimleri al
     const existingDepts = await prisma.department.findMany({ where: { orgId } });
     const deptMap = new Map(existingDepts.map((d) => [d.name.toLowerCase(), d.id]));
 
-    const results = { created: 0, updated: 0, skipped: 0, errors: [] as string[] };
-    const defaultPassword = await hashPassword('CVF-QA-2026!'); // İlk giriş sonrası değiştirilecek
+    const results = { created: 0, skipped: 0, errors: [] as { row: number; message: string }[] };
+    const defaultPassword = await hashPassword('CVF-QA-2026!');
 
     for (let i = 0; i < records.length; i++) {
       const row = records[i];
-      const rowNum = i + 2; // 1-indexed + header
+      const rowNum = i + 2; // 1-indexed + header row
 
       try {
-        // E-posta validasyonu
-        if (!row.email || !validateEmail(row.email)) {
-          results.errors.push(`Satır ${rowNum}: Geçersiz e-posta: ${row.email}`);
+        const email = row.email?.trim().toLowerCase();
+        const ad = row.ad?.trim();
+        const soyad = row.soyad?.trim();
+        const birim = row.birim?.trim();
+
+        // Validasyonlar
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          results.errors.push({ row: rowNum, message: `Geçersiz e-posta: ${row.email || '(boş)'}` });
           results.skipped++;
           continue;
         }
 
-        // Paydaş grubu validasyonu
-        const validGroups = ['ACADEMIC', 'ADMINISTRATIVE', 'STUDENT', 'EXTERNAL', 'ALUMNI'];
-        const group = row.stakeholder_group?.toUpperCase();
-        if (!validGroups.includes(group)) {
-          results.errors.push(`Satır ${rowNum}: Geçersiz paydaş grubu: ${row.stakeholder_group}`);
+        if (!ad || !soyad) {
+          results.errors.push({ row: rowNum, message: 'Ad ve soyad zorunludur' });
+          results.skipped++;
+          continue;
+        }
+
+        if (!birim) {
+          results.errors.push({ row: rowNum, message: 'Birim zorunludur' });
+          results.skipped++;
+          continue;
+        }
+
+        // Duplicate email kontrolü
+        const emailHash = this.hashEmail(email);
+        const existing = await prisma.user.findUnique({ where: { emailHash } });
+        if (existing) {
+          results.errors.push({ row: rowNum, message: `Bu e-posta zaten kayıtlı: ${email}` });
           results.skipped++;
           continue;
         }
 
         // Birim: yoksa oluştur
-        let departmentId: string | null = null;
-        if (row.department) {
-          const deptKey = row.department.toLowerCase();
-          if (deptMap.has(deptKey)) {
-            departmentId = deptMap.get(deptKey)!;
-          } else {
-            const dept = await prisma.department.create({ data: { orgId, name: row.department } });
-            deptMap.set(deptKey, dept.id);
-            departmentId = dept.id;
-          }
-        }
-
-        // Kullanıcı: var mı kontrol et
-        const emailHash = this.hashEmail(row.email);
-        const existing = await prisma.user.findUnique({ where: { emailHash } });
-
-        if (existing) {
-          // Güncelle
-          await prisma.user.update({
-            where: { id: existing.id },
-            data: {
-              departmentId,
-              stakeholderGroup: group as any,
-              nameEncrypted: row.name ? this.encryptField(row.name) : existing.nameEncrypted,
-            },
-          });
-          results.updated++;
+        let departmentId: string;
+        const deptKey = birim.toLowerCase();
+        if (deptMap.has(deptKey)) {
+          departmentId = deptMap.get(deptKey)!;
         } else {
-          // Yeni kullanıcı oluştur
-          await prisma.user.create({
-            data: {
-              orgId,
-              emailEncrypted: this.encryptField(row.email),
-              emailHash,
-              nameEncrypted: row.name ? this.encryptField(row.name) : null,
-              departmentId,
-              stakeholderGroup: group as any,
-              role: (row.role?.toUpperCase() as any) || 'PARTICIPANT',
-              passwordHash: defaultPassword,
-              authMethod: 'EMAIL_PASSWORD',
-            },
-          });
-          results.created++;
+          const dept = await prisma.department.create({ data: { orgId, name: birim } });
+          deptMap.set(deptKey, dept.id);
+          departmentId = dept.id;
         }
+
+        const fullName = `${ad} ${soyad}`;
+
+        await prisma.user.create({
+          data: {
+            orgId,
+            emailEncrypted: this.encryptField(email),
+            emailHash,
+            nameEncrypted: this.encryptField(fullName),
+            departmentId,
+            stakeholderGroup: 'ACADEMIC',
+            role: 'PARTICIPANT',
+            passwordHash: defaultPassword,
+            authMethod: 'EMAIL_PASSWORD',
+          },
+        });
+        results.created++;
       } catch (err: any) {
-        results.errors.push(`Satır ${rowNum}: ${err.message}`);
+        results.errors.push({ row: rowNum, message: err.message });
         results.skipped++;
       }
     }
@@ -129,44 +136,37 @@ class UserService {
       },
     });
 
-    return results;
+    return { totalRows: records.length, ...results };
   }
 
-  // ── Kullanıcı Listesi (sayfalı) ──
-  async list(orgId: string, page = 1, limit = 50, filters?: { department?: string; stakeholderGroup?: string }) {
-    const where: any = { orgId, isActive: true };
-    if (filters?.department) where.departmentId = filters.department;
-    if (filters?.stakeholderGroup) where.stakeholderGroup = filters.stakeholderGroup;
+  // ── Kullanıcı Listesi ──
+  async list(orgId: string, page = 1, limit = 50) {
+    const where = { orgId, isActive: true };
 
     const [users, total] = await Promise.all([
-      prisma.user.findMany({ where, skip: (page - 1) * limit, take: limit, include: { department: true }, orderBy: { createdAt: 'desc' } }),
+      prisma.user.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        include: { department: true },
+        orderBy: { createdAt: 'desc' },
+      }),
       prisma.user.count({ where }),
     ]);
 
     return {
       users: users.map((u) => ({
         id: u.id,
-        department: u.department?.name,
+        email: this.decryptField(u.emailEncrypted),
+        name: u.nameEncrypted ? this.decryptField(u.nameEncrypted) : null,
+        department: u.department?.name || null,
         stakeholderGroup: u.stakeholderGroup,
         role: u.role,
         isActive: u.isActive,
-        lastLoginAt: u.lastLoginAt,
-        // NOT: email ve isim şifreli — sadece admin görebilir
+        createdAt: u.createdAt,
       })),
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
     };
-  }
-
-  // ── KVKK: Kullanıcı Silme (Soft Delete → 30 gün sonra kalıcı) ──
-  async requestDeletion(userId: string) {
-    await prisma.user.update({
-      where: { id: userId },
-      data: { isActive: false },
-    });
-
-    // 30 gün sonra kalıcı silme job'u ekle
-    // TODO: BullMQ delayed job
-    return { success: true, message: 'Hesabınız 30 gün içinde kalıcı olarak silinecektir. Anonim analiz verileri korunur.' };
   }
 }
 
