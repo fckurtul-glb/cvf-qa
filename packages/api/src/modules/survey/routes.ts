@@ -1,29 +1,58 @@
-import type { FastifyInstance } from 'fastify';
-import { createRateLimiter } from '../../middleware/rate-limiter';
+import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import { requireAuth } from '../../middleware/auth';
+import { surveyService } from './service';
+import questionBank from '../../data/question-bank.json';
 
 export async function surveyRoutes(app: FastifyInstance) {
-  // GET /survey/start?t={token} — Anket başlat (token doğrulama)
-  app.get('/start', {
-    preHandler: createRateLimiter({ window: 60_000, max: 10 }),
-  }, async (request, reply) => {
-    const { t: token } = request.query as { t: string };
-    // TODO: Token doğrulama, fingerprint, session oluşturma
-    reply.send({ status: 'survey_start', token });
+  // GET /survey/ocai/questions — OCAI soru setini döndür
+  app.get('/ocai/questions', { preHandler: [requireAuth] }, async (_request, reply) => {
+    const ocai = questionBank.modules.M1_OCAI;
+    reply.send({
+      success: true,
+      data: {
+        name: ocai.name,
+        source: ocai.source,
+        format: ocai.format,
+        totalPoints: ocai.totalPoints,
+        instruction: ocai.instruction,
+        cultureTypes: ocai.cultureTypes,
+        perspectives: ocai.perspectives,
+        dimensions: ocai.dimensions,
+      },
+    });
   });
 
-  // POST /survey/save — Otomatik kaydetme (auto-save)
-  app.post('/save', {
-    preHandler: createRateLimiter({ window: 60_000, max: 120 }),
-  }, async (request, reply) => {
-    // TODO: Session doğrula, yanıtları kaydet
-    reply.send({ success: true, savedAt: new Date().toISOString() });
-  });
+  // POST /survey/submit — OCAI yanıtlarını kaydet
+  app.post('/submit', { preHandler: [requireAuth] }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const { sub, org } = request.user as { sub: string; org: string };
+    const { answers } = request.body as {
+      answers: Record<string, Record<string, Record<string, number>>>;
+      // answers[dimensionId][perspective][alternative] = points
+    };
 
-  // POST /survey/submit — Anketi tamamla (token invalidation)
-  app.post('/submit', {
-    preHandler: createRateLimiter({ window: 60_000, max: 5 }),
-  }, async (request, reply) => {
-    // TODO: Yanıtları validate et, session kapat, token invalidate et
-    reply.send({ success: true, message: 'Anket tamamlandı. Teşekkürler!' });
+    if (!answers || typeof answers !== 'object') {
+      return reply.status(400).send({
+        success: false,
+        error: { code: 'BAD_REQUEST', message: 'Yanıtlar gereklidir' },
+      });
+    }
+
+    try {
+      const result = await surveyService.submitOCAI(org, sub, answers);
+
+      if (!result.success) {
+        return reply.status(400).send({
+          success: false,
+          error: { code: 'VALIDATION_ERROR', message: result.error },
+        });
+      }
+
+      reply.send({ success: true, data: result });
+    } catch (err: any) {
+      return reply.status(500).send({
+        success: false,
+        error: { code: 'SUBMIT_ERROR', message: err.message },
+      });
+    }
   });
 }

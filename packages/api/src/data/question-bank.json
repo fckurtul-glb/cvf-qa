@@ -1,0 +1,288 @@
+{
+  "metadata": {
+    "title": "CVF-QA Soru Bankası",
+    "version": "1.0",
+    "totalQuestions": 146,
+    "source": "CVF_QA_Soru_Bankasi.docx"
+  },
+  "modules": {
+    "M1_OCAI": {
+      "name": "OCAI+ Örgüt Kültürü Değerlendirme Aracı",
+      "source": "Cameron & Quinn (2011)",
+      "format": "ipsative",
+      "totalPoints": 100,
+      "instruction": "Her boyutta 100 puanı 4 alternatif arasında dağıtın. Her boyut hem 'Mevcut' hem 'Tercih Edilen' olarak sorulur.",
+      "cultureTypes": {
+        "A": "Klan",
+        "B": "Adhokrasi",
+        "C": "Pazar",
+        "D": "Hiyerarşi"
+      },
+      "questionCount": 24,
+      "perspectives": ["mevcut", "tercih_edilen"],
+      "dimensions": [
+        {
+          "id": "D1",
+          "title": "Baskın Özellikler",
+          "stem": "Üniversitemiz genel olarak nasıl bir yerdir?",
+          "alternatives": {
+            "A": "Üniversitemiz çok samimi ve kişisel bir ortamdır. Geniş bir aile gibidir. Çalışanlar birbirleriyle çok şey paylaşır.",
+            "B": "Üniversitemiz çok dinamik ve girişimci bir ortamdır. Çalışanlar risk almaya isteklidir ve yenilikçi fikirler teşvik edilir.",
+            "C": "Üniversitemiz sonuç odaklı bir ortamdır. Ana kaygı akademik performans hedeflerine ulaşmak ve sıralamalar/akreditasyonlarda başarılı olmaktır.",
+            "D": "Üniversitemiz çok yapılandırılmış ve kontrollü bir ortamdır. Resmi prosedürler ve kurallar çalışanların ne yapacağını belirler."
+          }
+        },
+        {
+          "id": "D2",
+          "title": "Kurumsal Liderlik",
+          "stem": "Üniversitemizdeki liderlik tarzı nasıldır?",
+          "alternatives": {
+            "A": "Liderlik genellikle mentorluk, kolaylaştırıcılık ve destekleyicilik özelliklerini sergiler. Yöneticiler çalışanların gelişimine odaklanır.",
+            "B": "Liderlik genellikle girişimciliği, yenilikçiliği ve risk almayı teşvik eder. Yöneticiler vizyoner düşünür, yeni fikirlere açıktır.",
+            "C": "Liderlik genellikle agresif, sonuç odaklı ve kararlı bir tutum sergiler. Yöneticiler yüksek performans bekler.",
+            "D": "Liderlik genellikle koordinasyon, organizasyon ve verimlilik odaklıdır. Yöneticiler süreçlerin sorunsuz işlemesini sağlar."
+          }
+        },
+        {
+          "id": "D3",
+          "title": "Çalışan Yönetimi",
+          "stem": "Üniversitemizde çalışanlar nasıl yönetilir?",
+          "alternatives": {
+            "A": "Yönetim tarzı takım çalışması, uzlaşı ve katılımı esas alır. Çalışanların karar süreçlerine dahil edilmesi önemlidir.",
+            "B": "Yönetim tarzı bireysel risk almayı, yeniliği, özgürlüğü ve benzersizliği teşvik eder. Yaratıcılık ödüllendirilir.",
+            "C": "Yönetim tarzı rekabetçiliği, yüksek talepleri ve başarıyı vurgular. Akademik performans metrikleri sürekli izlenir.",
+            "D": "Yönetim tarzı iş güvencesi, istikrar, öngörülebilirlik ve ilişkilerde tutarlılığı esas alır."
+          }
+        },
+        {
+          "id": "D4",
+          "title": "Kurumsal Bağ",
+          "stem": "Üniversitemizi bir arada tutan nedir?",
+          "alternatives": {
+            "A": "Bağlılık ve karşılıklı güvendir. Kuruma bağlılık yüksektir. Çalışanlar arasında güçlü sosyal bağlar vardır.",
+            "B": "İnovasyon ve gelişime bağlılıktır. Öncü olmaya vurgu yapılır. Yeni bilgi üretimi ortak payda oluşturur.",
+            "C": "Başarı ve hedef odaklılıktır. Sıralama hedeflerine ulaşma ve akreditasyon başarısı ön plandadır.",
+            "D": "Resmi kurallar ve politikalardır. İşleyişin sorunsuz sürdürülmesi önemlidir."
+          }
+        },
+        {
+          "id": "D5",
+          "title": "Stratejik Vurgular",
+          "stem": "Üniversitemizin stratejik öncelikleri nelerdir?",
+          "alternatives": {
+            "A": "İnsan gelişimine önem verir. Yüksek güven, açıklık ve katılım teşvik edilir. Personel gelişimi stratejik önceliktir.",
+            "B": "Yeni kaynak edinme, fırsat yaratma ve yeni girişimlere önem verir. Disiplinlerarası projeler stratejik önceliktir.",
+            "C": "Rekabetçi eylemlere ve kazanmaya önem verir. Ulusal/uluslararası sıralamalarda yükselme stratejik önceliktir.",
+            "D": "Kalıcılık ve istikrara önem verir. Verimlilik, kontrol ve sorunsuz işleyiş stratejik önceliklerdir."
+          }
+        },
+        {
+          "id": "D6",
+          "title": "Başarı Kriterleri",
+          "stem": "Üniversitemizde başarı nasıl tanımlanır?",
+          "alternatives": {
+            "A": "İnsan kaynaklarının gelişimi, takım çalışması, çalışan bağlılığı ve paydaş memnuniyeti ile tanımlar.",
+            "B": "En benzersiz, en yenilikçi araştırmalar ve eğitim programları ile tanımlar. Alanında öncü olmak başarı göstergesidir.",
+            "C": "Sıralama performansı, akreditasyon başarısı, mezun istihdam oranları ve kurumsal itibarla tanımlar.",
+            "D": "Verimlilik, güvenilirlik, sorunsuz işleyiş ve düşük maliyetli operasyonlarla tanımlar."
+          }
+        }
+      ]
+    },
+    "M2_QCI": {
+      "name": "QCI-TR Kalite Kültürü Envanteri",
+      "source": "Seyfried & Pohlenz (2020)",
+      "format": "likert5",
+      "scale": ["1=Kesinlikle Katılmıyorum", "2=Katılmıyorum", "3=Kararsızım", "4=Katılıyorum", "5=Kesinlikle Katılıyorum"],
+      "questionCount": 30,
+      "subdimensions": [
+        {
+          "id": "QCI_commitment",
+          "title": "Kaliteye Bağlılık",
+          "items": [
+            {"id": "Q1", "text": "Kalite hedeflerine kişisel olarak bağlılık hissediyorum."},
+            {"id": "Q2", "text": "Kalite iyileştirme çalışmaları için ekstra çaba göstermeye istekliyim."},
+            {"id": "Q3", "text": "Kurumumuzun kalite politikasını benimsiyorum."},
+            {"id": "Q4", "text": "Kalite güvence süreçlerini günlük işlerimin doğal bir parçası olarak görüyorum."},
+            {"id": "Q5", "text": "Birimimizdeki kalite standartlarını korumak için sorumluluk alırım."},
+            {"id": "Q6", "text": "Kalite hedeflerine ulaşmak benim için kişisel başarı anlamına gelir."}
+          ]
+        },
+        {
+          "id": "QCI_leadership",
+          "title": "Kalite Liderliği",
+          "items": [
+            {"id": "Q7", "text": "Yöneticilerimiz kalite konusunda rol model oluşturuyor."},
+            {"id": "Q8", "text": "Liderler kalite hedeflerini açık ve anlaşılır şekilde iletiyor."},
+            {"id": "Q9", "text": "Üst yönetim kalite güvence çalışmalarını aktif olarak destekliyor."},
+            {"id": "Q10", "text": "Yöneticiler kalite iyileştirme önerilerini dikkate alıyor."},
+            {"id": "Q11", "text": "Liderler kalite başarılarını takdir ediyor ve kutluyor."},
+            {"id": "Q12", "text": "Yönetim kalite için yeterli kaynak ayırıyor."}
+          ]
+        },
+        {
+          "id": "QCI_communication",
+          "title": "Kalite İletişimi",
+          "items": [
+            {"id": "Q13", "text": "Kalite sonuçları tüm çalışanlarla şeffaf şekilde paylaşılıyor."},
+            {"id": "Q14", "text": "Kalite performansı hakkında düzenli geri bildirim alıyorum."},
+            {"id": "Q15", "text": "Kalite ile ilgili önemli gelişmeler zamanında duyuruluyor."},
+            {"id": "Q16", "text": "Kalite sorunları açıkça tartışılabiliyor."},
+            {"id": "Q17", "text": "Birimler arası kalite bilgi paylaşımı etkin şekilde yapılıyor."}
+          ]
+        },
+        {
+          "id": "QCI_empowerment",
+          "title": "Kalite Yetkilendirme",
+          "items": [
+            {"id": "Q18", "text": "Kalite ile ilgili kararlara katılım fırsatım var."},
+            {"id": "Q19", "text": "Kalite iyileştirme önerilerim ciddiye alınıyor."},
+            {"id": "Q20", "text": "Kendi iş süreçlerimde kalite iyileştirme yapma yetkisine sahibim."},
+            {"id": "Q21", "text": "Kalite sorunlarını çözmek için gerekli esnekliğe sahibim."},
+            {"id": "Q22", "text": "Kalite süreçlerinin tasarımında görüşlerim alınıyor."}
+          ]
+        },
+        {
+          "id": "QCI_trust",
+          "title": "Kalite Güveni",
+          "items": [
+            {"id": "Q23", "text": "Kalite güvence süreçlerimizin etkinliğine güveniyorum."},
+            {"id": "Q24", "text": "Kalite değerlendirmeleri adil ve objektif yapılıyor."},
+            {"id": "Q25", "text": "Kalite verilerimiz güvenilir ve doğrudur."},
+            {"id": "Q26", "text": "Kalite denetim sonuçlarına güveniyorum."}
+          ]
+        },
+        {
+          "id": "QCI_resources",
+          "title": "Kalite Kaynakları",
+          "items": [
+            {"id": "Q27", "text": "Kalite çalışmaları için yeterli zaman ayrılıyor."},
+            {"id": "Q28", "text": "Kalite eğitimlerine erişebiliyorum."},
+            {"id": "Q29", "text": "Kalite için gerekli araç ve teknolojiler sağlanıyor."},
+            {"id": "Q30", "text": "Kalite iyileştirme projeleri için bütçe ayrılıyor."}
+          ]
+        }
+      ]
+    },
+    "M4_UWES": {
+      "name": "UWES-TR Utrecht İşe Bağlılık Ölçeği",
+      "source": "Schaufeli et al. (2006)",
+      "format": "likert7",
+      "scale": ["0=Hiçbir zaman", "1=Neredeyse hiç", "2=Nadiren", "3=Bazen", "4=Sıklıkla", "5=Çok sık", "6=Her zaman"],
+      "questionCount": 9,
+      "subdimensions": [
+        {
+          "id": "UWES_vigor",
+          "title": "Dinçlik",
+          "items": [
+            {"id": "U1", "text": "İşimde kendimi enerjik hissediyorum."},
+            {"id": "U2", "text": "İşimde kendimi güçlü ve dinç hissediyorum."},
+            {"id": "U3", "text": "Sabah kalktığımda işe gitmeye istekliyim."}
+          ]
+        },
+        {
+          "id": "UWES_dedication",
+          "title": "Adanma",
+          "items": [
+            {"id": "U4", "text": "İşim bana ilham veriyor."},
+            {"id": "U5", "text": "Yaptığım işle gurur duyuyorum."},
+            {"id": "U6", "text": "İşim benim için anlamlı ve amaca yönelik."}
+          ]
+        },
+        {
+          "id": "UWES_absorption",
+          "title": "Yoğunlaşma",
+          "items": [
+            {"id": "U7", "text": "Çalışırken zaman nasıl geçiyor anlamıyorum."},
+            {"id": "U8", "text": "İşime daldığımda kendimi mutlu hissediyorum."},
+            {"id": "U9", "text": "Çalışırken işime tamamen kendimi kaptırıyorum."}
+          ]
+        }
+      ]
+    },
+    "M5_PKE": {
+      "name": "PKE Paydaş Katılım Endeksi",
+      "source": "Arnstein (1969) Uyarlama — ÖZGÜN",
+      "format": "likert5",
+      "scale": ["1=Kesinlikle Katılmıyorum", "2=Katılmıyorum", "3=Kararsızım", "4=Katılıyorum", "5=Kesinlikle Katılıyorum"],
+      "questionCount": 20,
+      "subdimensions": [
+        {
+          "id": "PKE_information",
+          "title": "Bilgilenme",
+          "items": [
+            {"id": "P1", "text": "Kurumsal kararlar hakkında yeterli düzeyde bilgilendirilirim."},
+            {"id": "P2", "text": "Stratejik plan hedefleri ve gelişmeler hakkında düzenli bilgi alırım."},
+            {"id": "P3", "text": "Kurumsal değişiklikler zamanında duyuruluyor."},
+            {"id": "P4", "text": "Bilgilendirme kanalları etkin çalışıyor."}
+          ]
+        },
+        {
+          "id": "PKE_consultation",
+          "title": "Danışılma",
+          "items": [
+            {"id": "P5", "text": "Beni etkileyen konularda görüşüm alınıyor."},
+            {"id": "P6", "text": "Anketler ve geri bildirim mekanizmaları düzenli kullanılıyor."},
+            {"id": "P7", "text": "Önerilerimi iletebileceğim kanallar mevcut."},
+            {"id": "P8", "text": "Danışma süreçleri sonucunda ne yapıldığı bildirilir."}
+          ]
+        },
+        {
+          "id": "PKE_involvement",
+          "title": "Dahil Olma",
+          "items": [
+            {"id": "P9", "text": "Karar alma toplantılarına katılım fırsatım var."},
+            {"id": "P10", "text": "Çalışma grupları ve komitelerde yer alabiliyorum."},
+            {"id": "P11", "text": "Görüşlerim tartışmalara dahil ediliyor."},
+            {"id": "P12", "text": "Katılımcı olarak katkılarım takdir ediliyor."}
+          ]
+        },
+        {
+          "id": "PKE_collaboration",
+          "title": "İşbirliği",
+          "items": [
+            {"id": "P13", "text": "Kurumsal projelerde ortak olarak yer alıyorum."},
+            {"id": "P14", "text": "Kararların tasarım aşamasında eşit söz hakkım var."},
+            {"id": "P15", "text": "Ortak çalışmalarda karşılıklı sorumluluk paylaşıyoruz."},
+            {"id": "P16", "text": "İşbirliği süreçleri kurumsallaşmış ve süreklidir."}
+          ]
+        },
+        {
+          "id": "PKE_empowerment",
+          "title": "Yetkilendirme",
+          "items": [
+            {"id": "P17", "text": "Belirli kararları doğrudan etkileme yetkisine sahibim."},
+            {"id": "P18", "text": "Kendi alanımla ilgili politikaları şekillendiriyorum."},
+            {"id": "P19", "text": "Bana devredilen yetkiler gerçek ve uygulanabilir."},
+            {"id": "P20", "text": "Karar sonuçlarından sorumlu tutuluyorum."}
+          ]
+        }
+      ]
+    },
+    "M6_SPU": {
+      "name": "SPU Stratejik Plan Uyumu Analizi",
+      "source": "BSC + CVF Entegrasyonu — ÖZGÜN",
+      "format": "likert5",
+      "scale": ["1=Kesinlikle Katılmıyorum", "2=Katılmıyorum", "3=Kararsızım", "4=Katılıyorum", "5=Kesinlikle Katılıyorum"],
+      "targetGroup": "Sadece Yönetim",
+      "questionCount": 15,
+      "items": [
+        {"id": "S1", "text": "Stratejik plan hedeflerini net olarak biliyorum."},
+        {"id": "S2", "text": "Birimimin stratejik plana katkısı açıkça tanımlanmış."},
+        {"id": "S3", "text": "Stratejik hedefler mevcut kurumsal kültürümüzle uyumlu."},
+        {"id": "S4", "text": "Stratejik hedeflere ulaşmak için kültür değişikliği gerekiyor."},
+        {"id": "S5", "text": "Stratejik plan, daha fazla işbirliği ve takım çalışması gerektiriyor."},
+        {"id": "S6", "text": "Stratejik plan, daha fazla yenilik ve risk alma gerektiriyor."},
+        {"id": "S7", "text": "Stratejik plan, daha fazla rekabetçilik ve sonuç odaklılık gerektiriyor."},
+        {"id": "S8", "text": "Stratejik plan, daha fazla standardizasyon ve kontrol gerektiriyor."},
+        {"id": "S9", "text": "Stratejik plan ilerleme durumu düzenli olarak izleniyor."},
+        {"id": "S10", "text": "Stratejik performans göstergeleri (KPI) etkin kullanılıyor."},
+        {"id": "S11", "text": "Bireysel hedeflerim stratejik planla bağlantılı."},
+        {"id": "S12", "text": "Stratejik plan kaynakların önceliklendirilmesinde yol gösteriyor."},
+        {"id": "S13", "text": "Stratejik plan güncellemeleri paydaşlarla paylaşılıyor."},
+        {"id": "S14", "text": "Stratejik hedefler YÖKAK kriterleriyle uyumlu."},
+        {"id": "S15", "text": "Kültür-strateji uyumsuzluğu strateji uygulamasını engelliyor."}
+      ]
+    }
+  }
+}

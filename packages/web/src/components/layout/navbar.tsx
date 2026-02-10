@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 const navLinks = [
   { href: '/dashboard', label: 'Genel Bakış' },
   { href: '/dashboard/users', label: 'Kullanıcılar' },
+  { href: '/survey/ocai', label: 'OCAI Anket' },
 ];
 
 export function Navbar() {
@@ -24,7 +25,7 @@ export function Navbar() {
           <span style={styles.brand}>CVF-QA</span>
           <div style={styles.links}>
             {navLinks.map((link) => {
-              const isActive = pathname === link.href;
+              const isActive = pathname === link.href || (link.href !== '/dashboard' && pathname.startsWith(link.href));
               return (
                 <a
                   key={link.href}

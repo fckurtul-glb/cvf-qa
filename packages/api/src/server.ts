@@ -6,6 +6,7 @@ import { config } from './config/env';
 import { errorHandler } from './middleware/error-handler';
 import { authRoutes } from './modules/auth/routes';
 import { userRoutes } from './modules/users/routes';
+import { surveyRoutes } from './modules/survey/routes';
 
 const app = Fastify({
   logger: {
@@ -46,6 +47,7 @@ async function bootstrap() {
   // ── Routes ──
   await app.register(authRoutes, { prefix: '/auth' });
   await app.register(userRoutes, { prefix: '/users' });
+  await app.register(surveyRoutes, { prefix: '/survey' });
 
   // ── Start ──
   const port = Number(config.PORT);

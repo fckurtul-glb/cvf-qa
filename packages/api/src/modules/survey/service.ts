@@ -1,163 +1,132 @@
 import { prisma } from '../../config/database';
-import { redis } from '../../config/redis';
 import { config } from '../../config/env';
 import crypto from 'crypto';
-import { ANONYMITY, SURVEY } from '@cvf-qa/shared';
-import { validateIpsativeAnswer, validateLikertAnswer } from '@cvf-qa/shared';
+import questionBank from '../../data/question-bank.json';
+
+const OCAI = questionBank.modules.M1_OCAI;
+const VALID_DIMENSIONS = OCAI.dimensions.map((d) => d.id);
+const VALID_PERSPECTIVES = OCAI.perspectives;
+const VALID_ALTERNATIVES = ['A', 'B', 'C', 'D'];
 
 class SurveyService {
-  // ── Token Doğrulama + Session Başlatma ──
-  async startSurvey(rawToken: string, ip: string, fingerprint?: string) {
-    const tokenHash = crypto
-      .createHmac('sha256', config.ENCRYPTION_KEY)
-      .update(rawToken)
-      .digest('hex');
+  // ── OCAI Yanıtlarını Doğrula ve Kaydet ──
+  async submitOCAI(
+    orgId: string,
+    userId: string,
+    answers: Record<string, Record<string, Record<string, number>>>,
+  ) {
+    // Validasyon: 6 boyut × 2 perspektif = 12 set, her biri toplam 100
+    for (const dimId of VALID_DIMENSIONS) {
+      if (!answers[dimId]) {
+        return { success: false, error: `Eksik boyut: ${dimId}` };
+      }
 
-    const token = await prisma.surveyToken.findUnique({
-      where: { tokenHash },
-      include: { campaign: { include: { organization: true } } },
-    });
+      for (const perspective of VALID_PERSPECTIVES) {
+        if (!answers[dimId][perspective]) {
+          return { success: false, error: `Eksik perspektif: ${dimId} — ${perspective}` };
+        }
 
-    if (!token) return { success: false, error: 'Geçersiz anket linki' };
-    if (token.expiresAt < new Date()) return { success: false, error: 'Anket linkinizin süresi dolmuş' };
-    if (token.usedCount >= token.maxUses) {
-      // Session aktif mi kontrol et (yarıda bırakma durumu)
-      const existingSession = await redis.get(`session:${token.id}`);
-      if (!existingSession) return { success: false, error: 'Bu anket linki daha önce kullanılmış' };
-    }
-    if (token.campaign.status !== 'ACTIVE') return { success: false, error: 'Bu anket kampanyası aktif değil' };
+        const values = answers[dimId][perspective];
+        let total = 0;
 
-    // Fingerprint kontrolü (opsiyonel)
-    if (token.fingerprintHash && fingerprint) {
-      const fpHash = crypto.createHash('sha256').update(fingerprint).digest('hex');
-      if (fpHash !== token.fingerprintHash) return { success: false, error: 'Cihaz doğrulaması başarısız' };
-    }
+        for (const alt of VALID_ALTERNATIVES) {
+          const val = values[alt];
+          if (val === undefined || val === null || typeof val !== 'number') {
+            return { success: false, error: `Eksik alternatif: ${dimId}/${perspective}/${alt}` };
+          }
+          if (val < 0 || val > 100 || !Number.isInteger(val)) {
+            return { success: false, error: `Geçersiz puan (0-100 arası tam sayı): ${dimId}/${perspective}/${alt} = ${val}` };
+          }
+          total += val;
+        }
 
-    // Mevcut yanıt var mı? (devam etme)
-    const existingResponse = await prisma.surveyResponse.findFirst({
-      where: { campaignId: token.campaignId, anonymousParticipantId: `anon_${token.id}` },
-      include: { answers: true },
-    });
-
-    if (existingResponse && existingResponse.status === 'COMPLETED') {
-      return { success: false, error: 'Bu anket zaten tamamlanmış' };
-    }
-
-    // Anonim katılımcı ID üret (token ID'den türetilir ama geri döndürülemez)
-    const anonymousId = existingResponse?.anonymousParticipantId ?? `anon_${crypto.createHash('sha256').update(token.id + config.ENCRYPTION_KEY).digest('hex').substring(0, 16)}`;
-
-    // Session oluştur/yenile (Redis — 60 dk timeout)
-    const sessionId = existingResponse?.id ?? crypto.randomUUID();
-    await redis.set(`session:${token.id}`, sessionId, 'EX', SURVEY.SESSION_TIMEOUT_MINUTES * 60);
-
-    // Yanıt kaydı oluştur veya güncelle
-    let response = existingResponse;
-    if (!response) {
-      // İlk kez — token kullanımını artır
-      await prisma.surveyToken.update({ where: { id: token.id }, data: { usedCount: { increment: 1 }, ipHash: crypto.createHash('sha256').update(ip).digest('hex') } });
-
-      response = await prisma.surveyResponse.create({
-        data: {
-          id: sessionId,
-          campaignId: token.campaignId,
-          anonymousParticipantId: anonymousId,
-          stakeholderGroup: 'ACADEMIC', // Token'dan alınacak
-          status: 'IN_PROGRESS',
-          startedAt: new Date(),
-          consentIp: ip,
-        },
-        include: { answers: true },
-      });
-    }
-
-    // Mevcut yanıtları dönüştür (devam etme için)
-    const savedAnswers: Record<string, any> = {};
-    if (response.answers) {
-      for (const a of response.answers) {
-        savedAnswers[a.questionId] = a.answerJson;
+        if (total !== 100) {
+          return { success: false, error: `Toplam 100 olmalıdır: ${dimId}/${perspective} = ${total}` };
+        }
       }
     }
 
-    return {
-      success: true,
-      sessionId: response.id,
-      campaign: {
-        name: token.campaign.name,
-        orgName: token.campaign.organization.name,
-        modules: token.moduleSet,
-      },
-      savedAnswers,
-    };
-  }
+    // Anonim katılımcı ID üret
+    const anonymousId = crypto
+      .createHash('sha256')
+      .update(userId + config.ENCRYPTION_KEY + Date.now().toString())
+      .digest('hex')
+      .substring(0, 24);
 
-  // ── Otomatik Kaydetme (Auto-save) ──
-  async saveProgress(sessionId: string, answers: Record<string, any>, moduleIndex: number, questionIndex: number) {
-    // Session doğrula
-    const response = await prisma.surveyResponse.findUnique({ where: { id: sessionId } });
-    if (!response || response.status === 'COMPLETED') {
-      return { success: false, error: 'Geçersiz oturum' };
+    // Kampanya: var mı kontrol et, yoksa varsayılan oluştur (MVP)
+    let campaign = await prisma.surveyCampaign.findFirst({
+      where: { orgId, status: 'ACTIVE' },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!campaign) {
+      campaign = await prisma.surveyCampaign.create({
+        data: {
+          orgId,
+          name: 'OCAI Değerlendirmesi',
+          status: 'ACTIVE',
+          moduleConfigJson: ['M1_OCAI'],
+          targetGroups: ['ACADEMIC', 'ADMINISTRATIVE'],
+          createdBy: userId,
+          startedAt: new Date(),
+        },
+      });
     }
 
-    // Yanıtları batch upsert (tek transaction)
-    const operations = Object.entries(answers).map(([questionId, answerData]) =>
-      prisma.surveyAnswer.upsert({
-        where: { responseId_questionId: { responseId: sessionId, questionId } },
-        create: { responseId: sessionId, moduleCode: (answerData as any).moduleCode ?? 'UNKNOWN', questionId, answerJson: answerData },
-        update: { answerJson: answerData },
-      })
-    );
-
-    await prisma.$transaction(operations);
-
-    // Son kayıt zamanını güncelle
-    await prisma.surveyResponse.update({
-      where: { id: sessionId },
-      data: { lastSavedAt: new Date() },
+    // SurveyResponse + SurveyAnswer transaction
+    const response = await prisma.surveyResponse.create({
+      data: {
+        campaignId: campaign.id,
+        anonymousParticipantId: anonymousId,
+        stakeholderGroup: 'ACADEMIC',
+        status: 'COMPLETED',
+        startedAt: new Date(),
+        completedAt: new Date(),
+        consentGivenAt: new Date(),
+        answers: {
+          create: this.flattenAnswers(answers),
+        },
+      },
+      include: { answers: true },
     });
-
-    // Redis session timeout'u yenile
-    const tokenKey = await redis.keys(`session:*`); // Simplified — gerçek implementasyonda sessionId→tokenId mapping
-    // await redis.expire(tokenKey, SURVEY.SESSION_TIMEOUT_MINUTES * 60);
-
-    return { success: true, savedAt: new Date().toISOString(), answersCount: Object.keys(answers).length };
-  }
-
-  // ── Anket Tamamlama ──
-  async submit(sessionId: string) {
-    const response = await prisma.surveyResponse.findUnique({
-      where: { id: sessionId },
-      include: { answers: true, campaign: true },
-    });
-
-    if (!response) return { success: false, error: 'Oturum bulunamadı' };
-    if (response.status === 'COMPLETED') return { success: false, error: 'Bu anket zaten gönderilmiş' };
-
-    // Modüller ve soru sayısı kontrolü
-    const modules = response.campaign.moduleConfigJson as string[];
-    const answeredCount = response.answers.length;
-    // TODO: Her modül için minimum yanıt kontrolü
-
-    // Durumu güncelle
-    await prisma.surveyResponse.update({
-      where: { id: sessionId },
-      data: { status: 'COMPLETED', completedAt: new Date() },
-    });
-
-    // Session'ı temizle
-    await redis.del(`session:${sessionId}`);
 
     // Audit log
     await prisma.auditLog.create({
       data: {
-        orgId: response.campaign.orgId,
-        action: 'survey.complete',
-        resourceType: 'response',
-        resourceId: sessionId,
-        detailsJson: { answersCount: answeredCount, completionTime: response.startedAt ? Date.now() - response.startedAt.getTime() : null },
+        orgId,
+        action: 'survey.ocai_submit',
+        resourceType: 'survey_response',
+        resourceId: response.id,
+        detailsJson: { answersCount: response.answers.length },
       },
     });
 
-    return { success: true, message: 'Anketiniz başarıyla gönderildi. Teşekkürler!' };
+    return {
+      success: true,
+      responseId: response.id,
+      answersCount: response.answers.length,
+      message: 'OCAI anketiniz başarıyla kaydedildi. Teşekkürler!',
+    };
+  }
+
+  private flattenAnswers(answers: Record<string, Record<string, Record<string, number>>>) {
+    const flat: { moduleCode: string; questionId: string; answerJson: any }[] = [];
+
+    for (const dimId of Object.keys(answers)) {
+      for (const perspective of Object.keys(answers[dimId])) {
+        flat.push({
+          moduleCode: 'M1_OCAI',
+          questionId: `${dimId}_${perspective}`,
+          answerJson: {
+            dimension: dimId,
+            perspective,
+            values: answers[dimId][perspective],
+          },
+        });
+      }
+    }
+
+    return flat;
   }
 }
 
