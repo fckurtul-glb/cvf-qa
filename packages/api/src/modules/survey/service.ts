@@ -109,6 +109,73 @@ class SurveyService {
     };
   }
 
+  // ── OCAI Sonuçlarını Hesapla ──
+  async getResult(responseId: string) {
+    const response = await prisma.surveyResponse.findUnique({
+      where: { id: responseId },
+      include: { answers: { where: { moduleCode: 'M1_OCAI' } } },
+    });
+
+    if (!response) return { success: false, error: 'Yanıt bulunamadı' };
+    if (response.status !== 'COMPLETED') return { success: false, error: 'Anket henüz tamamlanmamış' };
+
+    // Yanıtları perspektif bazında grupla
+    const byPerspective: Record<string, Record<string, number>[]> = {
+      mevcut: [],
+      tercih_edilen: [],
+    };
+
+    for (const answer of response.answers) {
+      const data = answer.answerJson as { dimension: string; perspective: string; values: Record<string, number> };
+      if (data.perspective && data.values) {
+        byPerspective[data.perspective]?.push(data.values);
+      }
+    }
+
+    // Her kültür tipi için ortalama hesapla (6 boyutun ortalaması)
+    const scores: Record<string, { mevcut: number; tercih_edilen: number }> = {};
+
+    for (const alt of VALID_ALTERNATIVES) {
+      const mevcutSum = byPerspective.mevcut.reduce((s, v) => s + (v[alt] || 0), 0);
+      const tercihSum = byPerspective.tercih_edilen.reduce((s, v) => s + (v[alt] || 0), 0);
+      const mevcutCount = byPerspective.mevcut.length || 1;
+      const tercihCount = byPerspective.tercih_edilen.length || 1;
+
+      scores[alt] = {
+        mevcut: Math.round((mevcutSum / mevcutCount) * 10) / 10,
+        tercih_edilen: Math.round((tercihSum / tercihCount) * 10) / 10,
+      };
+    }
+
+    // Baskın kültür tipi belirle
+    const dominantMevcut = Object.entries(scores).sort((a, b) => b[1].mevcut - a[1].mevcut)[0][0];
+    const dominantTercih = Object.entries(scores).sort((a, b) => b[1].tercih_edilen - a[1].tercih_edilen)[0][0];
+
+    // Boyut bazlı detay
+    const dimensions: Record<string, Record<string, Record<string, number>>> = {};
+    for (const answer of response.answers) {
+      const data = answer.answerJson as { dimension: string; perspective: string; values: Record<string, number> };
+      if (!dimensions[data.dimension]) dimensions[data.dimension] = {};
+      dimensions[data.dimension][data.perspective] = data.values;
+    }
+
+    return {
+      success: true,
+      data: {
+        responseId: response.id,
+        completedAt: response.completedAt,
+        cultureTypes: OCAI.cultureTypes,
+        scores,
+        dominant: {
+          mevcut: { type: dominantMevcut, name: (OCAI.cultureTypes as Record<string, string>)[dominantMevcut] },
+          tercih_edilen: { type: dominantTercih, name: (OCAI.cultureTypes as Record<string, string>)[dominantTercih] },
+        },
+        dimensions,
+        dimensionLabels: OCAI.dimensions.map((d) => ({ id: d.id, title: d.title })),
+      },
+    };
+  }
+
   private flattenAnswers(answers: Record<string, Record<string, Record<string, number>>>) {
     const flat: { moduleCode: string; questionId: string; answerJson: any }[] = [];
 

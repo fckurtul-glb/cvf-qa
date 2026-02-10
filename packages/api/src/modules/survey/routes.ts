@@ -22,6 +22,22 @@ export async function surveyRoutes(app: FastifyInstance) {
     });
   });
 
+  // GET /survey/result/:id — OCAI sonuçlarını hesapla ve döndür
+  app.get('/result/:id', { preHandler: [requireAuth] }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+
+    const result = await surveyService.getResult(id);
+
+    if (!result.success) {
+      return reply.status(404).send({
+        success: false,
+        error: { code: 'NOT_FOUND', message: result.error },
+      });
+    }
+
+    reply.send({ success: true, data: result.data });
+  });
+
   // POST /survey/submit — OCAI yanıtlarını kaydet
   app.post('/submit', { preHandler: [requireAuth] }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { sub, org } = request.user as { sub: string; org: string };

@@ -126,7 +126,7 @@ export default function OCAISurveyPage() {
         return;
       }
 
-      router.push('/survey/complete');
+      router.push(`/survey/result/${data.data.responseId}`);
     } catch {
       setError('Bağlantı hatası. Lütfen tekrar deneyin.');
       setSubmitting(false);
