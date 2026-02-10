@@ -1,0 +1,10 @@
+FROM node:20-alpine AS base
+WORKDIR /app
+RUN corepack enable pnpm
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY packages/shared/ packages/shared/
+COPY packages/api/ packages/api/
+RUN pnpm install --frozen-lockfile --filter @cvf-qa/api...
+RUN pnpm --filter @cvf-qa/api prisma:generate && pnpm --filter @cvf-qa/api build
+EXPOSE 3001
+CMD ["node", "packages/api/dist/server.js"]

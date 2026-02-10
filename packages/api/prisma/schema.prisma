@@ -1,0 +1,336 @@
+// ═══════════════════════════════════════════════════
+// CVF-QA Veritabanı Şeması — PostgreSQL 16+ (RLS)
+// İki şema: identity (şifreli) + survey (anonim)
+// ═══════════════════════════════════════════════════
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/database/generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ════════════════════════════════════
+// IDENTITY SCHEMA — Şifreli kişisel veri
+// ════════════════════════════════════
+
+model Organization {
+  id          String   @id @default(cuid())
+  name        String
+  domain      String   @unique
+  packageTier PackageTier @default(STARTER)
+  isActive    Boolean  @default(true)
+  settings    Json     @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users       User[]
+  departments Department[]
+  campaigns   SurveyCampaign[]
+  reports     Report[]
+  auditLogs   AuditLog[]
+
+  @@map("organizations")
+}
+
+model User {
+  id                   String   @id @default(cuid())
+  orgId                String
+  emailEncrypted       String   // AES-256 encrypted
+  emailHash            String   @unique // SHA-256 for lookups
+  nameEncrypted        String?  // AES-256 encrypted
+  departmentId         String?
+  stakeholderGroup     StakeholderGroup
+  role                 UserRole @default(PARTICIPANT)
+  passwordHash         String?  // Argon2id
+  totpSecretEncrypted  String?  // AES-256 encrypted
+  authMethod           AuthMethod @default(EMAIL_PASSWORD)
+  isActive             Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  lastLoginAt          DateTime?
+  failedLoginAttempts  Int      @default(0)
+  lockedUntil          DateTime?
+
+  organization Organization @relation(fields: [orgId], references: [id])
+  department   Department?  @relation(fields: [departmentId], references: [id])
+  createdCampaigns SurveyCampaign[] @relation("CampaignCreator")
+  surveyTokens SurveyToken[]
+  assessment360Configs Assessment360Config[] @relation("AssessedManager")
+  assessment360Ratings Assessment360Rater[]
+
+  @@index([orgId])
+  @@index([emailHash])
+  @@map("users")
+}
+
+model Department {
+  id                 String  @id @default(cuid())
+  orgId              String
+  name               String
+  parentDepartmentId String?
+  headUserId         String?
+
+  organization    Organization @relation(fields: [orgId], references: [id])
+  parentDepartment Department? @relation("DeptHierarchy", fields: [parentDepartmentId], references: [id])
+  childDepartments Department[] @relation("DeptHierarchy")
+  users           User[]
+
+  @@unique([orgId, name])
+  @@map("departments")
+}
+
+// ════════════════════════════════════
+// CAMPAIGN & TOKEN MANAGEMENT
+// ════════════════════════════════════
+
+model SurveyCampaign {
+  id               String         @id @default(cuid())
+  orgId            String
+  name             String
+  description      String?
+  status           CampaignStatus @default(DRAFT)
+  moduleConfigJson Json           // ModuleCode[]
+  targetGroups     Json           // StakeholderGroup[]
+  startedAt        DateTime?
+  closesAt         DateTime?
+  createdBy        String
+  reminderConfig   Json           @default("{}")
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  organization Organization @relation(fields: [orgId], references: [id])
+  creator      User         @relation("CampaignCreator", fields: [createdBy], references: [id])
+  tokens       SurveyToken[]
+  responses    SurveyResponse[]
+  reports      Report[]
+  assessment360Configs Assessment360Config[]
+
+  @@index([orgId, status])
+  @@map("survey_campaigns")
+}
+
+model SurveyToken {
+  id              String   @id @default(cuid())
+  campaignId      String
+  userId          String
+  tokenHash       String   @unique // HMAC-SHA256
+  moduleSet       Json     // ModuleCode[]
+  expiresAt       DateTime
+  maxUses         Int      @default(1)
+  usedCount       Int      @default(0)
+  fingerprintHash String?
+  ipHash          String?
+  createdAt       DateTime @default(now())
+
+  campaign SurveyCampaign @relation(fields: [campaignId], references: [id])
+  user     User           @relation(fields: [userId], references: [id])
+
+  @@index([tokenHash])
+  @@index([campaignId])
+  @@map("survey_tokens")
+}
+
+// ════════════════════════════════════
+// SURVEY SCHEMA — Anonim yanıtlar
+// ════════════════════════════════════
+
+model SurveyResponse {
+  id                     String       @id @default(cuid())
+  campaignId             String
+  anonymousParticipantId String       // Kriptografik anonim ID
+  stakeholderGroup       StakeholderGroup
+  departmentCode         String?      // Birim kodu (isim değil)
+  status                 SurveyStatus @default(NOT_STARTED)
+  startedAt              DateTime?
+  completedAt            DateTime?
+  lastSavedAt            DateTime?
+  consentGivenAt         DateTime?
+  consentIp              String?
+  demographicJson        Json?        // { seniority_range, age_range }
+  createdAt              DateTime     @default(now())
+
+  campaign SurveyCampaign @relation(fields: [campaignId], references: [id])
+  answers  SurveyAnswer[]
+
+  @@index([campaignId, status])
+  @@index([anonymousParticipantId])
+  @@map("survey_responses")
+}
+
+model SurveyAnswer {
+  id         String @id @default(cuid())
+  responseId String
+  moduleCode String // M1_OCAI, M2_QCI, etc.
+  questionId String
+  answerJson Json   // IpsativeAnswer | LikertAnswer
+
+  response SurveyResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
+
+  @@unique([responseId, questionId])
+  @@index([responseId, moduleCode])
+  @@map("survey_answers")
+}
+
+// ════════════════════════════════════
+// 360° LEADERSHIP ASSESSMENT
+// ════════════════════════════════════
+
+model Assessment360Config {
+  id           String @id @default(cuid())
+  campaignId   String
+  managerId    String
+  status       Assessment360Status @default(PENDING)
+  completedAt  DateTime?
+  createdAt    DateTime @default(now())
+
+  campaign SurveyCampaign @relation(fields: [campaignId], references: [id])
+  manager  User           @relation("AssessedManager", fields: [managerId], references: [id])
+  raters   Assessment360Rater[]
+
+  @@unique([campaignId, managerId])
+  @@map("assessment_360_configs")
+}
+
+model Assessment360Rater {
+  id           String          @id @default(cuid())
+  configId     String
+  raterUserId  String
+  perspective  Perspective360
+  status       SurveyStatus    @default(NOT_STARTED)
+  tokenId      String?
+
+  config Assessment360Config @relation(fields: [configId], references: [id])
+  rater  User                @relation(fields: [raterUserId], references: [id])
+
+  @@unique([configId, raterUserId])
+  @@map("assessment_360_raters")
+}
+
+// ════════════════════════════════════
+// REPORTING & AUDIT
+// ════════════════════════════════════
+
+model Report {
+  id               String     @id @default(cuid())
+  campaignId       String
+  orgId            String
+  reportType       ReportType
+  scope            String     // 'institutional' | dept_id | user_id
+  generatedAt      DateTime   @default(now())
+  filePathEncrypted String    // AES-256 encrypted S3 path
+  accessTokenHash  String     @unique
+  expiresAt        DateTime?
+
+  campaign     SurveyCampaign @relation(fields: [campaignId], references: [id])
+  organization Organization   @relation(fields: [orgId], references: [id])
+
+  @@index([orgId, reportType])
+  @@map("reports")
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  orgId        String
+  userId       String?
+  action       String   // 'login', 'campaign.create', 'report.download', etc.
+  resourceType String?
+  resourceId   String?
+  ipAddress    String?
+  userAgent    String?
+  detailsJson  Json?
+  timestamp    DateTime @default(now())
+
+  organization Organization @relation(fields: [orgId], references: [id])
+
+  // IMMUTABLE — silinemez, değiştirilemez
+  @@index([orgId, timestamp])
+  @@index([userId, action])
+  @@map("audit_logs")
+}
+
+model ConsentLog {
+  id             String   @id @default(cuid())
+  responseId     String
+  consentType    String   // 'kvkk_aydinlatma', 'data_processing'
+  consentText    String   // Onaylanan metnin snapshot'ı
+  givenAt        DateTime @default(now())
+  ipAddress      String
+  userAgent      String?
+
+  @@index([responseId])
+  @@map("consent_logs")
+}
+
+// ════════════════════════════════════
+// ENUMS
+// ════════════════════════════════════
+
+enum PackageTier {
+  STARTER
+  PROFESSIONAL
+  ENTERPRISE
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ORG_ADMIN
+  UNIT_ADMIN
+  PARTICIPANT
+  VIEWER
+}
+
+enum StakeholderGroup {
+  ACADEMIC
+  ADMINISTRATIVE
+  STUDENT
+  EXTERNAL
+  ALUMNI
+}
+
+enum AuthMethod {
+  EMAIL_PASSWORD
+  MAGIC_LINK
+  SSO_SAML
+  SSO_OIDC
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
+
+enum SurveyStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  EXPIRED
+}
+
+enum Assessment360Status {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum Perspective360 {
+  SELF
+  SUBORDINATE
+  PEER
+  SUPERIOR
+}
+
+enum ReportType {
+  INSTITUTIONAL
+  DEPARTMENT
+  INDIVIDUAL_360
+  YOKAK_EVIDENCE
+  COMPARATIVE
+}

@@ -1,0 +1,8 @@
+FROM node:20-alpine AS base
+WORKDIR /app
+RUN corepack enable pnpm
+COPY . .
+RUN pnpm install --frozen-lockfile --filter @cvf-qa/web...
+RUN pnpm --filter @cvf-qa/web build
+EXPOSE 3000
+CMD ["pnpm", "--filter", "@cvf-qa/web", "start"]

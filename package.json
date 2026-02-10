@@ -1,0 +1,39 @@
+{
+  "name": "cvf-qa",
+  "version": "0.1.0",
+  "private": true,
+  "description": "CVF-QA — Yükseköğretim Kurumsal Kültür Değerlendirme Platformu",
+  "author": "CVF-QA Team",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "test": "turbo test",
+    "typecheck": "turbo typecheck",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\"",
+    "db:migrate": "pnpm --filter @cvf-qa/api prisma:migrate",
+    "db:seed": "pnpm --filter @cvf-qa/api prisma:seed",
+    "db:studio": "pnpm --filter @cvf-qa/api prisma:studio",
+    "db:generate": "pnpm --filter @cvf-qa/api prisma:generate",
+    "clean": "turbo clean && rm -rf node_modules",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "husky": "^9.1.0",
+    "lint-staged": "^15.2.0",
+    "prettier": "^3.3.0",
+    "turbo": "^2.1.0",
+    "typescript": "^5.5.0"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": ["eslint --fix", "prettier --write"],
+    "*.{json,md}": ["prettier --write"]
+  }
+}

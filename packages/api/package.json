@@ -1,0 +1,36 @@
+{
+  "name": "@cvf-qa/api",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "lint": "echo 'TODO: eslint'",
+    "test": "echo 'TODO: vitest'",
+    "typecheck": "tsc --noEmit",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:seed": "tsx src/database/seeds/index.ts",
+    "prisma:studio": "prisma studio",
+    "clean": "rm -rf dist .turbo"
+  },
+  "dependencies": {
+    "@fastify/cors": "^9.0.0",
+    "@fastify/jwt": "^8.0.1",
+    "@prisma/client": "^5.22.0",
+    "argon2": "^0.44.0",
+    "fastify": "^4.28.0",
+    "ioredis": "^5.9.2",
+    "nanoid": "^5.1.6",
+    "pino-pretty": "^11.2.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "dotenv": "^16.4.0",
+    "prisma": "^5.22.0",
+    "tsx": "^4.16.0",
+    "typescript": "^5.5.0"
+  }
+}
