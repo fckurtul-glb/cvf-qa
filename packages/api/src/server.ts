@@ -10,6 +10,8 @@ import { surveyRoutes } from './modules/survey/routes';
 import { campaignRoutes } from './modules/campaigns/routes';
 import { analyticsRoutes } from './modules/analytics/routes';
 import { reportsRoutes } from './modules/reports/routes';
+import { assessment360Routes } from './modules/assessment360/routes';
+import { emailWorker } from './jobs/email-sender';
 
 const app = Fastify({
   logger: {
@@ -54,6 +56,10 @@ async function bootstrap() {
   await app.register(campaignRoutes, { prefix: '/campaigns' });
   await app.register(analyticsRoutes, { prefix: '/analytics' });
   await app.register(reportsRoutes, { prefix: '/reports' });
+  await app.register(assessment360Routes, { prefix: '/360' });
+
+  // ── Email Worker ──
+  app.log.info(`Email worker başlatıldı (concurrency: 5)`);
 
   // ── Start ──
   const port = Number(config.PORT);
@@ -70,6 +76,7 @@ bootstrap().catch((err) => {
 for (const signal of ['SIGINT', 'SIGTERM']) {
   process.on(signal, async () => {
     app.log.info(`${signal} alındı, kapatılıyor...`);
+    await emailWorker.close();
     await app.close();
     process.exit(0);
   });

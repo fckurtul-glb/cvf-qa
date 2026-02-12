@@ -401,7 +401,7 @@ class SurveyService {
   async submitLikert(
     orgId: string,
     userId: string,
-    moduleCode: 'M2_QCI' | 'M4_UWES' | 'M5_PKE' | 'M6_SPU',
+    moduleCode: 'M2_QCI' | 'M4_UWES' | 'M5_PKE' | 'M6_SPU' | 'M3_MSAI',
     answers: Record<string, number>,
   ) {
     const modules = questionBank.modules as Record<string, any>;

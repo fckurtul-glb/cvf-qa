@@ -1,8 +1,8 @@
 {
   "metadata": {
     "title": "CVF-QA Soru Bankası",
-    "version": "1.0",
-    "totalQuestions": 146,
+    "version": "1.1",
+    "totalQuestions": 194,
     "source": "CVF_QA_Soru_Bankasi.docx"
   },
   "modules": {
@@ -19,7 +19,10 @@
         "D": "Hiyerarşi"
       },
       "questionCount": 24,
-      "perspectives": ["mevcut", "tercih_edilen"],
+      "perspectives": [
+        "mevcut",
+        "tercih_edilen"
+      ],
       "dimensions": [
         {
           "id": "D1",
@@ -93,73 +96,169 @@
       "name": "QCI-TR Kalite Kültürü Envanteri",
       "source": "Seyfried & Pohlenz (2020)",
       "format": "likert5",
-      "scale": ["1=Kesinlikle Katılmıyorum", "2=Katılmıyorum", "3=Kararsızım", "4=Katılıyorum", "5=Kesinlikle Katılıyorum"],
+      "scale": [
+        "1=Kesinlikle Katılmıyorum",
+        "2=Katılmıyorum",
+        "3=Kararsızım",
+        "4=Katılıyorum",
+        "5=Kesinlikle Katılıyorum"
+      ],
       "questionCount": 30,
       "subdimensions": [
         {
           "id": "QCI_commitment",
           "title": "Kaliteye Bağlılık",
           "items": [
-            {"id": "Q1", "text": "Kalite hedeflerine kişisel olarak bağlılık hissediyorum."},
-            {"id": "Q2", "text": "Kalite iyileştirme çalışmaları için ekstra çaba göstermeye istekliyim."},
-            {"id": "Q3", "text": "Kurumumuzun kalite politikasını benimsiyorum."},
-            {"id": "Q4", "text": "Kalite güvence süreçlerini günlük işlerimin doğal bir parçası olarak görüyorum."},
-            {"id": "Q5", "text": "Birimimizdeki kalite standartlarını korumak için sorumluluk alırım."},
-            {"id": "Q6", "text": "Kalite hedeflerine ulaşmak benim için kişisel başarı anlamına gelir."}
+            {
+              "id": "Q1",
+              "text": "Kalite hedeflerine kişisel olarak bağlılık hissediyorum."
+            },
+            {
+              "id": "Q2",
+              "text": "Kalite iyileştirme çalışmaları için ekstra çaba göstermeye istekliyim."
+            },
+            {
+              "id": "Q3",
+              "text": "Kurumumuzun kalite politikasını benimsiyorum."
+            },
+            {
+              "id": "Q4",
+              "text": "Kalite güvence süreçlerini günlük işlerimin doğal bir parçası olarak görüyorum."
+            },
+            {
+              "id": "Q5",
+              "text": "Birimimizdeki kalite standartlarını korumak için sorumluluk alırım."
+            },
+            {
+              "id": "Q6",
+              "text": "Kalite hedeflerine ulaşmak benim için kişisel başarı anlamına gelir."
+            }
           ]
         },
         {
           "id": "QCI_leadership",
           "title": "Kalite Liderliği",
           "items": [
-            {"id": "Q7", "text": "Yöneticilerimiz kalite konusunda rol model oluşturuyor."},
-            {"id": "Q8", "text": "Liderler kalite hedeflerini açık ve anlaşılır şekilde iletiyor."},
-            {"id": "Q9", "text": "Üst yönetim kalite güvence çalışmalarını aktif olarak destekliyor."},
-            {"id": "Q10", "text": "Yöneticiler kalite iyileştirme önerilerini dikkate alıyor."},
-            {"id": "Q11", "text": "Liderler kalite başarılarını takdir ediyor ve kutluyor."},
-            {"id": "Q12", "text": "Yönetim kalite için yeterli kaynak ayırıyor."}
+            {
+              "id": "Q7",
+              "text": "Yöneticilerimiz kalite konusunda rol model oluşturuyor."
+            },
+            {
+              "id": "Q8",
+              "text": "Liderler kalite hedeflerini açık ve anlaşılır şekilde iletiyor."
+            },
+            {
+              "id": "Q9",
+              "text": "Üst yönetim kalite güvence çalışmalarını aktif olarak destekliyor."
+            },
+            {
+              "id": "Q10",
+              "text": "Yöneticiler kalite iyileştirme önerilerini dikkate alıyor."
+            },
+            {
+              "id": "Q11",
+              "text": "Liderler kalite başarılarını takdir ediyor ve kutluyor."
+            },
+            {
+              "id": "Q12",
+              "text": "Yönetim kalite için yeterli kaynak ayırıyor."
+            }
           ]
         },
         {
           "id": "QCI_communication",
           "title": "Kalite İletişimi",
           "items": [
-            {"id": "Q13", "text": "Kalite sonuçları tüm çalışanlarla şeffaf şekilde paylaşılıyor."},
-            {"id": "Q14", "text": "Kalite performansı hakkında düzenli geri bildirim alıyorum."},
-            {"id": "Q15", "text": "Kalite ile ilgili önemli gelişmeler zamanında duyuruluyor."},
-            {"id": "Q16", "text": "Kalite sorunları açıkça tartışılabiliyor."},
-            {"id": "Q17", "text": "Birimler arası kalite bilgi paylaşımı etkin şekilde yapılıyor."}
+            {
+              "id": "Q13",
+              "text": "Kalite sonuçları tüm çalışanlarla şeffaf şekilde paylaşılıyor."
+            },
+            {
+              "id": "Q14",
+              "text": "Kalite performansı hakkında düzenli geri bildirim alıyorum."
+            },
+            {
+              "id": "Q15",
+              "text": "Kalite ile ilgili önemli gelişmeler zamanında duyuruluyor."
+            },
+            {
+              "id": "Q16",
+              "text": "Kalite sorunları açıkça tartışılabiliyor."
+            },
+            {
+              "id": "Q17",
+              "text": "Birimler arası kalite bilgi paylaşımı etkin şekilde yapılıyor."
+            }
           ]
         },
         {
           "id": "QCI_empowerment",
           "title": "Kalite Yetkilendirme",
           "items": [
-            {"id": "Q18", "text": "Kalite ile ilgili kararlara katılım fırsatım var."},
-            {"id": "Q19", "text": "Kalite iyileştirme önerilerim ciddiye alınıyor."},
-            {"id": "Q20", "text": "Kendi iş süreçlerimde kalite iyileştirme yapma yetkisine sahibim."},
-            {"id": "Q21", "text": "Kalite sorunlarını çözmek için gerekli esnekliğe sahibim."},
-            {"id": "Q22", "text": "Kalite süreçlerinin tasarımında görüşlerim alınıyor."}
+            {
+              "id": "Q18",
+              "text": "Kalite ile ilgili kararlara katılım fırsatım var."
+            },
+            {
+              "id": "Q19",
+              "text": "Kalite iyileştirme önerilerim ciddiye alınıyor."
+            },
+            {
+              "id": "Q20",
+              "text": "Kendi iş süreçlerimde kalite iyileştirme yapma yetkisine sahibim."
+            },
+            {
+              "id": "Q21",
+              "text": "Kalite sorunlarını çözmek için gerekli esnekliğe sahibim."
+            },
+            {
+              "id": "Q22",
+              "text": "Kalite süreçlerinin tasarımında görüşlerim alınıyor."
+            }
           ]
         },
         {
           "id": "QCI_trust",
           "title": "Kalite Güveni",
           "items": [
-            {"id": "Q23", "text": "Kalite güvence süreçlerimizin etkinliğine güveniyorum."},
-            {"id": "Q24", "text": "Kalite değerlendirmeleri adil ve objektif yapılıyor."},
-            {"id": "Q25", "text": "Kalite verilerimiz güvenilir ve doğrudur."},
-            {"id": "Q26", "text": "Kalite denetim sonuçlarına güveniyorum."}
+            {
+              "id": "Q23",
+              "text": "Kalite güvence süreçlerimizin etkinliğine güveniyorum."
+            },
+            {
+              "id": "Q24",
+              "text": "Kalite değerlendirmeleri adil ve objektif yapılıyor."
+            },
+            {
+              "id": "Q25",
+              "text": "Kalite verilerimiz güvenilir ve doğrudur."
+            },
+            {
+              "id": "Q26",
+              "text": "Kalite denetim sonuçlarına güveniyorum."
+            }
           ]
         },
         {
           "id": "QCI_resources",
           "title": "Kalite Kaynakları",
           "items": [
-            {"id": "Q27", "text": "Kalite çalışmaları için yeterli zaman ayrılıyor."},
-            {"id": "Q28", "text": "Kalite eğitimlerine erişebiliyorum."},
-            {"id": "Q29", "text": "Kalite için gerekli araç ve teknolojiler sağlanıyor."},
-            {"id": "Q30", "text": "Kalite iyileştirme projeleri için bütçe ayrılıyor."}
+            {
+              "id": "Q27",
+              "text": "Kalite çalışmaları için yeterli zaman ayrılıyor."
+            },
+            {
+              "id": "Q28",
+              "text": "Kalite eğitimlerine erişebiliyorum."
+            },
+            {
+              "id": "Q29",
+              "text": "Kalite için gerekli araç ve teknolojiler sağlanıyor."
+            },
+            {
+              "id": "Q30",
+              "text": "Kalite iyileştirme projeleri için bütçe ayrılıyor."
+            }
           ]
         }
       ]
@@ -168,34 +267,69 @@
       "name": "UWES-TR Utrecht İşe Bağlılık Ölçeği",
       "source": "Schaufeli et al. (2006)",
       "format": "likert7",
-      "scale": ["0=Hiçbir zaman", "1=Neredeyse hiç", "2=Nadiren", "3=Bazen", "4=Sıklıkla", "5=Çok sık", "6=Her zaman"],
+      "scale": [
+        "0=Hiçbir zaman",
+        "1=Neredeyse hiç",
+        "2=Nadiren",
+        "3=Bazen",
+        "4=Sıklıkla",
+        "5=Çok sık",
+        "6=Her zaman"
+      ],
       "questionCount": 9,
       "subdimensions": [
         {
           "id": "UWES_vigor",
           "title": "Dinçlik",
           "items": [
-            {"id": "U1", "text": "İşimde kendimi enerjik hissediyorum."},
-            {"id": "U2", "text": "İşimde kendimi güçlü ve dinç hissediyorum."},
-            {"id": "U3", "text": "Sabah kalktığımda işe gitmeye istekliyim."}
+            {
+              "id": "U1",
+              "text": "İşimde kendimi enerjik hissediyorum."
+            },
+            {
+              "id": "U2",
+              "text": "İşimde kendimi güçlü ve dinç hissediyorum."
+            },
+            {
+              "id": "U3",
+              "text": "Sabah kalktığımda işe gitmeye istekliyim."
+            }
           ]
         },
         {
           "id": "UWES_dedication",
           "title": "Adanma",
           "items": [
-            {"id": "U4", "text": "İşim bana ilham veriyor."},
-            {"id": "U5", "text": "Yaptığım işle gurur duyuyorum."},
-            {"id": "U6", "text": "İşim benim için anlamlı ve amaca yönelik."}
+            {
+              "id": "U4",
+              "text": "İşim bana ilham veriyor."
+            },
+            {
+              "id": "U5",
+              "text": "Yaptığım işle gurur duyuyorum."
+            },
+            {
+              "id": "U6",
+              "text": "İşim benim için anlamlı ve amaca yönelik."
+            }
           ]
         },
         {
           "id": "UWES_absorption",
           "title": "Yoğunlaşma",
           "items": [
-            {"id": "U7", "text": "Çalışırken zaman nasıl geçiyor anlamıyorum."},
-            {"id": "U8", "text": "İşime daldığımda kendimi mutlu hissediyorum."},
-            {"id": "U9", "text": "Çalışırken işime tamamen kendimi kaptırıyorum."}
+            {
+              "id": "U7",
+              "text": "Çalışırken zaman nasıl geçiyor anlamıyorum."
+            },
+            {
+              "id": "U8",
+              "text": "İşime daldığımda kendimi mutlu hissediyorum."
+            },
+            {
+              "id": "U9",
+              "text": "Çalışırken işime tamamen kendimi kaptırıyorum."
+            }
           ]
         }
       ]
@@ -204,57 +338,123 @@
       "name": "PKE Paydaş Katılım Endeksi",
       "source": "Arnstein (1969) Uyarlama — ÖZGÜN",
       "format": "likert5",
-      "scale": ["1=Kesinlikle Katılmıyorum", "2=Katılmıyorum", "3=Kararsızım", "4=Katılıyorum", "5=Kesinlikle Katılıyorum"],
+      "scale": [
+        "1=Kesinlikle Katılmıyorum",
+        "2=Katılmıyorum",
+        "3=Kararsızım",
+        "4=Katılıyorum",
+        "5=Kesinlikle Katılıyorum"
+      ],
       "questionCount": 20,
       "subdimensions": [
         {
           "id": "PKE_information",
           "title": "Bilgilenme",
           "items": [
-            {"id": "P1", "text": "Kurumsal kararlar hakkında yeterli düzeyde bilgilendirilirim."},
-            {"id": "P2", "text": "Stratejik plan hedefleri ve gelişmeler hakkında düzenli bilgi alırım."},
-            {"id": "P3", "text": "Kurumsal değişiklikler zamanında duyuruluyor."},
-            {"id": "P4", "text": "Bilgilendirme kanalları etkin çalışıyor."}
+            {
+              "id": "P1",
+              "text": "Kurumsal kararlar hakkında yeterli düzeyde bilgilendirilirim."
+            },
+            {
+              "id": "P2",
+              "text": "Stratejik plan hedefleri ve gelişmeler hakkında düzenli bilgi alırım."
+            },
+            {
+              "id": "P3",
+              "text": "Kurumsal değişiklikler zamanında duyuruluyor."
+            },
+            {
+              "id": "P4",
+              "text": "Bilgilendirme kanalları etkin çalışıyor."
+            }
           ]
         },
         {
           "id": "PKE_consultation",
           "title": "Danışılma",
           "items": [
-            {"id": "P5", "text": "Beni etkileyen konularda görüşüm alınıyor."},
-            {"id": "P6", "text": "Anketler ve geri bildirim mekanizmaları düzenli kullanılıyor."},
-            {"id": "P7", "text": "Önerilerimi iletebileceğim kanallar mevcut."},
-            {"id": "P8", "text": "Danışma süreçleri sonucunda ne yapıldığı bildirilir."}
+            {
+              "id": "P5",
+              "text": "Beni etkileyen konularda görüşüm alınıyor."
+            },
+            {
+              "id": "P6",
+              "text": "Anketler ve geri bildirim mekanizmaları düzenli kullanılıyor."
+            },
+            {
+              "id": "P7",
+              "text": "Önerilerimi iletebileceğim kanallar mevcut."
+            },
+            {
+              "id": "P8",
+              "text": "Danışma süreçleri sonucunda ne yapıldığı bildirilir."
+            }
           ]
         },
         {
           "id": "PKE_involvement",
           "title": "Dahil Olma",
           "items": [
-            {"id": "P9", "text": "Karar alma toplantılarına katılım fırsatım var."},
-            {"id": "P10", "text": "Çalışma grupları ve komitelerde yer alabiliyorum."},
-            {"id": "P11", "text": "Görüşlerim tartışmalara dahil ediliyor."},
-            {"id": "P12", "text": "Katılımcı olarak katkılarım takdir ediliyor."}
+            {
+              "id": "P9",
+              "text": "Karar alma toplantılarına katılım fırsatım var."
+            },
+            {
+              "id": "P10",
+              "text": "Çalışma grupları ve komitelerde yer alabiliyorum."
+            },
+            {
+              "id": "P11",
+              "text": "Görüşlerim tartışmalara dahil ediliyor."
+            },
+            {
+              "id": "P12",
+              "text": "Katılımcı olarak katkılarım takdir ediliyor."
+            }
           ]
         },
         {
           "id": "PKE_collaboration",
           "title": "İşbirliği",
           "items": [
-            {"id": "P13", "text": "Kurumsal projelerde ortak olarak yer alıyorum."},
-            {"id": "P14", "text": "Kararların tasarım aşamasında eşit söz hakkım var."},
-            {"id": "P15", "text": "Ortak çalışmalarda karşılıklı sorumluluk paylaşıyoruz."},
-            {"id": "P16", "text": "İşbirliği süreçleri kurumsallaşmış ve süreklidir."}
+            {
+              "id": "P13",
+              "text": "Kurumsal projelerde ortak olarak yer alıyorum."
+            },
+            {
+              "id": "P14",
+              "text": "Kararların tasarım aşamasında eşit söz hakkım var."
+            },
+            {
+              "id": "P15",
+              "text": "Ortak çalışmalarda karşılıklı sorumluluk paylaşıyoruz."
+            },
+            {
+              "id": "P16",
+              "text": "İşbirliği süreçleri kurumsallaşmış ve süreklidir."
+            }
           ]
         },
         {
           "id": "PKE_empowerment",
           "title": "Yetkilendirme",
           "items": [
-            {"id": "P17", "text": "Belirli kararları doğrudan etkileme yetkisine sahibim."},
-            {"id": "P18", "text": "Kendi alanımla ilgili politikaları şekillendiriyorum."},
-            {"id": "P19", "text": "Bana devredilen yetkiler gerçek ve uygulanabilir."},
-            {"id": "P20", "text": "Karar sonuçlarından sorumlu tutuluyorum."}
+            {
+              "id": "P17",
+              "text": "Belirli kararları doğrudan etkileme yetkisine sahibim."
+            },
+            {
+              "id": "P18",
+              "text": "Kendi alanımla ilgili politikaları şekillendiriyorum."
+            },
+            {
+              "id": "P19",
+              "text": "Bana devredilen yetkiler gerçek ve uygulanabilir."
+            },
+            {
+              "id": "P20",
+              "text": "Karar sonuçlarından sorumlu tutuluyorum."
+            }
           ]
         }
       ]
@@ -263,25 +463,381 @@
       "name": "SPU Stratejik Plan Uyumu Analizi",
       "source": "BSC + CVF Entegrasyonu — ÖZGÜN",
       "format": "likert5",
-      "scale": ["1=Kesinlikle Katılmıyorum", "2=Katılmıyorum", "3=Kararsızım", "4=Katılıyorum", "5=Kesinlikle Katılıyorum"],
+      "scale": [
+        "1=Kesinlikle Katılmıyorum",
+        "2=Katılmıyorum",
+        "3=Kararsızım",
+        "4=Katılıyorum",
+        "5=Kesinlikle Katılıyorum"
+      ],
       "targetGroup": "Sadece Yönetim",
       "questionCount": 15,
       "items": [
-        {"id": "S1", "text": "Stratejik plan hedeflerini net olarak biliyorum."},
-        {"id": "S2", "text": "Birimimin stratejik plana katkısı açıkça tanımlanmış."},
-        {"id": "S3", "text": "Stratejik hedefler mevcut kurumsal kültürümüzle uyumlu."},
-        {"id": "S4", "text": "Stratejik hedeflere ulaşmak için kültür değişikliği gerekiyor."},
-        {"id": "S5", "text": "Stratejik plan, daha fazla işbirliği ve takım çalışması gerektiriyor."},
-        {"id": "S6", "text": "Stratejik plan, daha fazla yenilik ve risk alma gerektiriyor."},
-        {"id": "S7", "text": "Stratejik plan, daha fazla rekabetçilik ve sonuç odaklılık gerektiriyor."},
-        {"id": "S8", "text": "Stratejik plan, daha fazla standardizasyon ve kontrol gerektiriyor."},
-        {"id": "S9", "text": "Stratejik plan ilerleme durumu düzenli olarak izleniyor."},
-        {"id": "S10", "text": "Stratejik performans göstergeleri (KPI) etkin kullanılıyor."},
-        {"id": "S11", "text": "Bireysel hedeflerim stratejik planla bağlantılı."},
-        {"id": "S12", "text": "Stratejik plan kaynakların önceliklendirilmesinde yol gösteriyor."},
-        {"id": "S13", "text": "Stratejik plan güncellemeleri paydaşlarla paylaşılıyor."},
-        {"id": "S14", "text": "Stratejik hedefler YÖKAK kriterleriyle uyumlu."},
-        {"id": "S15", "text": "Kültür-strateji uyumsuzluğu strateji uygulamasını engelliyor."}
+        {
+          "id": "S1",
+          "text": "Stratejik plan hedeflerini net olarak biliyorum."
+        },
+        {
+          "id": "S2",
+          "text": "Birimimin stratejik plana katkısı açıkça tanımlanmış."
+        },
+        {
+          "id": "S3",
+          "text": "Stratejik hedefler mevcut kurumsal kültürümüzle uyumlu."
+        },
+        {
+          "id": "S4",
+          "text": "Stratejik hedeflere ulaşmak için kültür değişikliği gerekiyor."
+        },
+        {
+          "id": "S5",
+          "text": "Stratejik plan, daha fazla işbirliği ve takım çalışması gerektiriyor."
+        },
+        {
+          "id": "S6",
+          "text": "Stratejik plan, daha fazla yenilik ve risk alma gerektiriyor."
+        },
+        {
+          "id": "S7",
+          "text": "Stratejik plan, daha fazla rekabetçilik ve sonuç odaklılık gerektiriyor."
+        },
+        {
+          "id": "S8",
+          "text": "Stratejik plan, daha fazla standardizasyon ve kontrol gerektiriyor."
+        },
+        {
+          "id": "S9",
+          "text": "Stratejik plan ilerleme durumu düzenli olarak izleniyor."
+        },
+        {
+          "id": "S10",
+          "text": "Stratejik performans göstergeleri (KPI) etkin kullanılıyor."
+        },
+        {
+          "id": "S11",
+          "text": "Bireysel hedeflerim stratejik planla bağlantılı."
+        },
+        {
+          "id": "S12",
+          "text": "Stratejik plan kaynakların önceliklendirilmesinde yol gösteriyor."
+        },
+        {
+          "id": "S13",
+          "text": "Stratejik plan güncellemeleri paydaşlarla paylaşılıyor."
+        },
+        {
+          "id": "S14",
+          "text": "Stratejik hedefler YÖKAK kriterleriyle uyumlu."
+        },
+        {
+          "id": "S15",
+          "text": "Kültür-strateji uyumsuzluğu strateji uygulamasını engelliyor."
+        }
+      ]
+    },
+    "M3_MSAI": {
+      "name": "MSAI-YÖ Yönetim Becerileri Değerlendirme - Yükseköğretim",
+      "source": "Cameron & Quinn (2011) — Yükseköğretim Uyarlaması",
+      "format": "likert5",
+      "scale": [
+        "1=Kesinlikle Katılmıyorum",
+        "2=Katılmıyorum",
+        "3=Kararsızım",
+        "4=Katılıyorum",
+        "5=Kesinlikle Katılıyorum"
+      ],
+      "questionCount": 48,
+      "targetGroup": "Yöneticiler (360° formatında: öz, ast, eşdüzey, üst değerlendirme)",
+      "instruction": "Değerlendirdiğiniz yöneticiyi aşağıdaki ifadeler açısından puanlayın.",
+      "subdimensions": [
+        {
+          "id": "MSAI_clan_team",
+          "quadrant": "Klan",
+          "title": "Takım Yönetimi",
+          "description": "Takım oluşturma, katılımcı karar alma, çatışma yönetimi",
+          "items": [
+            {
+              "id": "MS1",
+              "text": "Çalışanları ortak hedefler etrafında birleştiren etkili takımlar oluşturur."
+            },
+            {
+              "id": "MS2",
+              "text": "Karar alma süreçlerinde ekip üyelerinin görüşlerini aktif olarak alır."
+            },
+            {
+              "id": "MS3",
+              "text": "Birim içi çatışmaları yapıcı diyalog yoluyla çözüme kavuşturur."
+            },
+            {
+              "id": "MS4",
+              "text": "Farklı görüşlerin tartışılmasına olanak tanıyan katılımcı bir ortam yaratır."
+            }
+          ]
+        },
+        {
+          "id": "MSAI_clan_relationship",
+          "quadrant": "Klan",
+          "title": "İlişki Yönetimi",
+          "description": "Empatik iletişim, güven oluşturma, mentorluk",
+          "items": [
+            {
+              "id": "MS5",
+              "text": "Çalışanlarla empatik ve açık bir iletişim tarzı sergiler."
+            },
+            {
+              "id": "MS6",
+              "text": "Karşılıklı güvene dayalı ilişkiler kurar ve sürdürür."
+            },
+            {
+              "id": "MS7",
+              "text": "Çalışanların kişisel ve mesleki sorunlarıyla ilgilenir."
+            },
+            {
+              "id": "MS8",
+              "text": "Biriminde güvenli ve destekleyici bir çalışma ortamı oluşturur."
+            }
+          ]
+        },
+        {
+          "id": "MSAI_clan_development",
+          "quadrant": "Klan",
+          "title": "Geliştirme",
+          "description": "Yetenek geliştirme, koçluk, kariyer desteği",
+          "items": [
+            {
+              "id": "MS9",
+              "text": "Çalışanların mesleki gelişimleri için fırsatlar yaratır ve destekler."
+            },
+            {
+              "id": "MS10",
+              "text": "Genç akademisyen ve personele mentorluk yapar."
+            },
+            {
+              "id": "MS11",
+              "text": "Çalışanların güçlü yönlerini fark eder ve bu yönlerin geliştirilmesini teşvik eder."
+            },
+            {
+              "id": "MS12",
+              "text": "Kariyer planlaması konusunda çalışanlarına rehberlik eder."
+            }
+          ]
+        },
+        {
+          "id": "MSAI_adhocracy_innovation",
+          "quadrant": "Adhokrasi",
+          "title": "İnovasyon Yönetimi",
+          "description": "Yaratıcı düşünme, risk alma, deneysellik",
+          "items": [
+            {
+              "id": "MS13",
+              "text": "Yeni ve yaratıcı fikirlerin üretilmesini teşvik eder."
+            },
+            {
+              "id": "MS14",
+              "text": "Yenilikçi projelerde hesaplanmış risk almayı destekler."
+            },
+            {
+              "id": "MS15",
+              "text": "Başarısızlığı öğrenme fırsatı olarak değerlendirir, cezalandırmaz."
+            },
+            {
+              "id": "MS16",
+              "text": "Disiplinlerarası iş birliği ve deneysel yaklaşımları özendirir."
+            }
+          ]
+        },
+        {
+          "id": "MSAI_adhocracy_vision",
+          "quadrant": "Adhokrasi",
+          "title": "Gelecek Vizyonu",
+          "description": "Stratejik öngörü, trend analizi, vizyon oluşturma",
+          "items": [
+            {
+              "id": "MS17",
+              "text": "Biriminin geleceği için ilham verici bir vizyon oluşturur."
+            },
+            {
+              "id": "MS18",
+              "text": "Yükseköğretimdeki ulusal ve uluslararası gelişmeleri takip eder ve birime yansıtır."
+            },
+            {
+              "id": "MS19",
+              "text": "Değişen koşullara uyum sağlamak için öngörülü stratejiler geliştirir."
+            },
+            {
+              "id": "MS20",
+              "text": "Uzun vadeli fırsatları belirleyerek birimin rekabet gücünü artırır."
+            }
+          ]
+        },
+        {
+          "id": "MSAI_adhocracy_improvement",
+          "quadrant": "Adhokrasi",
+          "title": "Sürekli İyileştirme",
+          "description": "Değişim yönetimi, öğrenme kültürü, adaptasyon",
+          "items": [
+            {
+              "id": "MS21",
+              "text": "Değişim süreçlerini etkin bir şekilde yönetir."
+            },
+            {
+              "id": "MS22",
+              "text": "Sürekli öğrenme ve gelişim kültürünü teşvik eder."
+            },
+            {
+              "id": "MS23",
+              "text": "Mevcut süreçleri sorgular ve iyileştirme önerileri geliştirir."
+            },
+            {
+              "id": "MS24",
+              "text": "Değişime karşı direnci anlayışla karşılar ve yapıcı çözümler üretir."
+            }
+          ]
+        },
+        {
+          "id": "MSAI_market_competitiveness",
+          "quadrant": "Pazar",
+          "title": "Rekabetçilik",
+          "description": "Hedef odaklılık, performans yönetimi, sonuç odaklılık",
+          "items": [
+            {
+              "id": "MS25",
+              "text": "Birim için net ve ölçülebilir performans hedefleri belirler."
+            },
+            {
+              "id": "MS26",
+              "text": "Hedeflere ulaşma konusunda kararlı bir tutum sergiler."
+            },
+            {
+              "id": "MS27",
+              "text": "Akademik performans metriklerini düzenli olarak takip eder ve değerlendirir."
+            },
+            {
+              "id": "MS28",
+              "text": "Birimin ulusal ve uluslararası sıralamalardaki konumunu iyileştirmeye odaklanır."
+            }
+          ]
+        },
+        {
+          "id": "MSAI_market_energizing",
+          "quadrant": "Pazar",
+          "title": "Enerjilendirme",
+          "description": "Motivasyon, başarı odaklı kültür, mücadele ruhu",
+          "items": [
+            {
+              "id": "MS29",
+              "text": "Çalışanları yüksek performans göstermeye motive eder."
+            },
+            {
+              "id": "MS30",
+              "text": "Bireysel ve takım başarılarını tanır ve ödüllendirir."
+            },
+            {
+              "id": "MS31",
+              "text": "Zorlu hedefler karşısında mücadele ruhunu canlı tutar."
+            },
+            {
+              "id": "MS32",
+              "text": "Başarı odaklı bir çalışma kültürü oluşturur."
+            }
+          ]
+        },
+        {
+          "id": "MSAI_market_service",
+          "quadrant": "Pazar",
+          "title": "Paydaş Odaklılık",
+          "description": "Öğrenci/paydaş odaklılık, hizmet kalitesi, memnuniyet",
+          "items": [
+            {
+              "id": "MS33",
+              "text": "Öğrenci memnuniyetini ve deneyimini sürekli iyileştirmeye çalışır."
+            },
+            {
+              "id": "MS34",
+              "text": "Paydaş geri bildirimlerini ciddiye alır ve uygulamaya yansıtır."
+            },
+            {
+              "id": "MS35",
+              "text": "Sunulan eğitim ve hizmetin kalitesini sürekli yükseltmeyi hedefler."
+            },
+            {
+              "id": "MS36",
+              "text": "Dış paydaşlarla (sektör, mezunlar, toplum) güçlü ilişkiler kurar."
+            }
+          ]
+        },
+        {
+          "id": "MSAI_hierarchy_culture",
+          "quadrant": "Hiyerarşi",
+          "title": "Kültürlendirme",
+          "description": "Kurum kimliği, değerler aktarımı, sosyalizasyon",
+          "items": [
+            {
+              "id": "MS37",
+              "text": "Kurumsal değerleri ve kimliği çalışanlara etkin bir şekilde aktarır."
+            },
+            {
+              "id": "MS38",
+              "text": "Yeni çalışanların kuruma uyum sürecini destekler."
+            },
+            {
+              "id": "MS39",
+              "text": "Kurumsal aidiyet duygusunu güçlendiren etkinlikler düzenler."
+            },
+            {
+              "id": "MS40",
+              "text": "Birimin kültürel normlarını ve beklentilerini açıkça iletir."
+            }
+          ]
+        },
+        {
+          "id": "MSAI_hierarchy_control",
+          "quadrant": "Hiyerarşi",
+          "title": "Kontrol Sistemleri",
+          "description": "İzleme, raporlama, standart belirleme, uyum",
+          "items": [
+            {
+              "id": "MS41",
+              "text": "İş süreçlerini düzenli olarak izler ve raporlar."
+            },
+            {
+              "id": "MS42",
+              "text": "Kalite standartlarını belirler ve uygulanmasını sağlar."
+            },
+            {
+              "id": "MS43",
+              "text": "Yasal düzenlemelere ve kurumsal prosedürlere uyumu takip eder."
+            },
+            {
+              "id": "MS44",
+              "text": "Performans değerlendirmelerini adil ve sistematik bir şekilde yürütür."
+            }
+          ]
+        },
+        {
+          "id": "MSAI_hierarchy_coordination",
+          "quadrant": "Hiyerarşi",
+          "title": "Koordinasyon",
+          "description": "Süreç yönetimi, kaynak tahsisi, proje yönetimi",
+          "items": [
+            {
+              "id": "MS45",
+              "text": "Birim içi iş süreçlerini verimli bir şekilde koordine eder."
+            },
+            {
+              "id": "MS46",
+              "text": "Kaynakları (bütçe, personel, zaman) etkin bir şekilde tahsis eder."
+            },
+            {
+              "id": "MS47",
+              "text": "Birimler arası iş birliğini ve bilgi akışını sağlar."
+            },
+            {
+              "id": "MS48",
+              "text": "Projelerin zamanında ve bütçesinde tamamlanmasını yönetir."
+            }
+          ]
+        }
       ]
     }
   }

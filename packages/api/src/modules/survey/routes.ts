@@ -86,6 +86,24 @@ export async function surveyRoutes(app: FastifyInstance) {
     });
   });
 
+  // GET /survey/msai/questions — MSAI-YÖ 360° soru setini döndür
+  app.get('/msai/questions', { preHandler: [requireAuth] }, async (_request, reply) => {
+    const msai = (questionBank.modules as any).M3_MSAI;
+    reply.send({
+      success: true,
+      data: {
+        name: msai.name,
+        source: msai.source,
+        format: msai.format,
+        scale: msai.scale,
+        questionCount: msai.questionCount,
+        targetGroup: msai.targetGroup,
+        instruction: msai.instruction,
+        subdimensions: msai.subdimensions,
+      },
+    });
+  });
+
   // GET /survey/start — Token doğrulama ve anket session başlat
   app.get('/start', async (request: FastifyRequest, reply: FastifyReply) => {
     const { t } = request.query as { t?: string };
@@ -179,6 +197,7 @@ export async function surveyRoutes(app: FastifyInstance) {
       UWES: 'M4_UWES',
       PKE: 'M5_PKE',
       SPU: 'M6_SPU',
+      MSAI: 'M3_MSAI',
     };
 
     let result;
@@ -218,7 +237,7 @@ export async function surveyRoutes(app: FastifyInstance) {
     try {
       let result;
 
-      const LIKERT_CODES = ['M2_QCI', 'M4_UWES', 'M5_PKE', 'M6_SPU'];
+      const LIKERT_CODES = ['M2_QCI', 'M4_UWES', 'M5_PKE', 'M6_SPU', 'M3_MSAI'];
       if (moduleCode && LIKERT_CODES.includes(moduleCode)) {
         result = await surveyService.submitLikert(org, sub, moduleCode as any, answers as Record<string, number>);
       } else {

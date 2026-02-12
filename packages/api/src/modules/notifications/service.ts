@@ -78,6 +78,34 @@ const EMAIL_TEMPLATES: Record<string, (data: any) => { html: string; text: strin
     text: `Raporunuz hazır: ${data.campaignName}\nYanıt Oranı: %${data.responseRate}\nGörüntüle: ${data.reportUrl}`,
   }),
 
+  '360-invitation': (data) => ({
+    html: `
+      <div style="font-family:'DM Sans',system-ui,sans-serif;max-width:600px;margin:0 auto;padding:32px">
+        <div style="text-align:center;margin-bottom:24px">
+          <div style="display:inline-block;background:linear-gradient(135deg,#7B2D8E,#9B4DCA);color:white;font-weight:bold;padding:8px 16px;border-radius:12px;font-size:14px">360°</div>
+        </div>
+        <h1 style="color:#0F1D2F;font-size:22px;margin-bottom:8px">360° Değerlendirme Daveti</h1>
+        <p style="color:#0F1D2F99;font-size:14px;line-height:1.6">
+          <strong>${data.orgName}</strong> bünyesinde <strong>${data.managerName}</strong> için gerçekleştirilen
+          360° yönetici değerlendirmesine <strong>${data.perspective}</strong> perspektifinden katılmanız beklenmektedir.
+        </p>
+        <div style="background:#F3E8F9;border-radius:12px;padding:20px;margin:24px 0;text-align:center">
+          <p style="color:#7B2D8E;font-size:12px;margin:0 0 12px">Yanıtlarınız anonim olarak toplanır ve yalnızca toplu sonuçlar paylaşılır.</p>
+          <a href="${data.surveyUrl}" style="display:inline-block;background:linear-gradient(135deg,#7B2D8E,#9B4DCA);color:white;text-decoration:none;padding:14px 32px;border-radius:12px;font-weight:600;font-size:16px">
+            Değerlendirmeyi Başlat →
+          </a>
+        </div>
+        <div style="border-top:1px solid #E5E3DE;padding-top:16px;margin-top:24px">
+          <p style="color:#0F1D2F50;font-size:12px;line-height:1.6">
+            ${data.expiresAt ? `Son katılım tarihi: ${new Date(data.expiresAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}` : ''}
+            <br>Bu linki başkalarıyla paylaşmayın.
+          </p>
+        </div>
+      </div>
+    `,
+    text: `360° Değerlendirme Daveti — ${data.managerName}\n\n${data.orgName} bünyesinde ${data.perspective} perspektifinden değerlendirmeniz beklenmektedir.\n\nBaşlatmak için: ${data.surveyUrl}`,
+  }),
+
   'otp-verification': (data) => ({
     html: `
       <div style="font-family:'DM Sans',system-ui,sans-serif;max-width:600px;margin:0 auto;padding:32px;text-align:center">
