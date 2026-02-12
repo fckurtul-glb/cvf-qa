@@ -1,7 +1,5 @@
 # CVF-QA Platform
 
-**Yükseköğretim Kurumları için Bütünleşik Kurumsal Kültür Değerlendirme ve Akreditasyon Destek Platformu**
-
 ## Mimari Genel Bakış
 
 ```
