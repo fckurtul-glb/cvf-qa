@@ -22,11 +22,171 @@ export async function surveyRoutes(app: FastifyInstance) {
     });
   });
 
-  // GET /survey/result/:id — OCAI sonuçlarını hesapla ve döndür
+  // GET /survey/qci/questions — QCI-TR soru setini döndür
+  app.get('/qci/questions', { preHandler: [requireAuth] }, async (_request, reply) => {
+    const qci = questionBank.modules.M2_QCI;
+    reply.send({
+      success: true,
+      data: {
+        name: qci.name,
+        source: qci.source,
+        format: qci.format,
+        scale: qci.scale,
+        questionCount: qci.questionCount,
+        subdimensions: qci.subdimensions,
+      },
+    });
+  });
+
+  // GET /survey/uwes/questions — UWES-TR soru setini döndür
+  app.get('/uwes/questions', { preHandler: [requireAuth] }, async (_request, reply) => {
+    const uwes = questionBank.modules.M4_UWES;
+    reply.send({
+      success: true,
+      data: {
+        name: uwes.name,
+        source: uwes.source,
+        format: uwes.format,
+        scale: uwes.scale,
+        questionCount: uwes.questionCount,
+        subdimensions: uwes.subdimensions,
+      },
+    });
+  });
+
+  // GET /survey/pke/questions — PKE soru setini döndür
+  app.get('/pke/questions', { preHandler: [requireAuth] }, async (_request, reply) => {
+    const pke = questionBank.modules.M5_PKE;
+    reply.send({
+      success: true,
+      data: {
+        name: pke.name,
+        source: pke.source,
+        format: pke.format,
+        scale: pke.scale,
+        questionCount: pke.questionCount,
+        subdimensions: pke.subdimensions,
+      },
+    });
+  });
+
+  // GET /survey/spu/questions — SPU soru setini döndür
+  app.get('/spu/questions', { preHandler: [requireAuth] }, async (_request, reply) => {
+    const spu = questionBank.modules.M6_SPU;
+    reply.send({
+      success: true,
+      data: {
+        name: spu.name,
+        source: spu.source,
+        format: spu.format,
+        scale: spu.scale,
+        questionCount: spu.questionCount,
+        items: spu.items,
+      },
+    });
+  });
+
+  // GET /survey/start — Token doğrulama ve anket session başlat
+  app.get('/start', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { t } = request.query as { t?: string };
+
+    if (!t) {
+      return reply.status(400).send({
+        success: false,
+        error: { code: 'BAD_REQUEST', message: 'Token gereklidir' },
+      });
+    }
+
+    const result = await surveyService.validateToken(t);
+
+    if (!result.success) {
+      return reply.status(400).send({
+        success: false,
+        error: { code: 'TOKEN_ERROR', message: result.error },
+      });
+    }
+
+    reply.send({ success: true, data: result.data });
+  });
+
+  // POST /survey/consent — KVKK onayı + demografik bilgi kaydet
+  app.post('/consent', async (request: FastifyRequest, reply: FastifyReply) => {
+    const body = request.body as {
+      tokenHash: string;
+      consentGiven: boolean;
+      demographic?: { seniorityRange?: string; ageRange?: string };
+    };
+
+    if (!body.tokenHash || !body.consentGiven) {
+      return reply.status(400).send({
+        success: false,
+        error: { code: 'BAD_REQUEST', message: 'Token ve onay gereklidir' },
+      });
+    }
+
+    const result = await surveyService.recordConsent(
+      body.tokenHash,
+      body.demographic,
+      request.ip || 'unknown',
+      request.headers['user-agent'] || 'unknown',
+    );
+
+    if (!result.success) {
+      return reply.status(400).send({
+        success: false,
+        error: { code: 'CONSENT_ERROR', message: result.error },
+      });
+    }
+
+    reply.send({ success: true, data: result.data });
+  });
+
+  // POST /survey/save — Otomatik kaydetme (auto-save)
+  app.post('/save', async (request: FastifyRequest, reply: FastifyReply) => {
+    const body = request.body as {
+      responseId: string;
+      moduleCode: string;
+      answers: Record<string, number>;
+    };
+
+    if (!body.responseId || !body.moduleCode || !body.answers) {
+      return reply.status(400).send({
+        success: false,
+        error: { code: 'BAD_REQUEST', message: 'responseId, moduleCode ve answers gereklidir' },
+      });
+    }
+
+    const result = await surveyService.autoSave(body.responseId, body.moduleCode, body.answers);
+
+    if (!result.success) {
+      return reply.status(400).send({
+        success: false,
+        error: { code: 'SAVE_ERROR', message: result.error },
+      });
+    }
+
+    reply.send({ success: true, data: result });
+  });
+
+  // GET /survey/result/:id — Sonuçları hesapla ve döndür
+  // ?module=QCI|UWES|PKE|SPU → Likert sonuçlar, yoksa OCAI
   app.get('/result/:id', { preHandler: [requireAuth] }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
+    const { module: moduleParam } = request.query as { module?: string };
 
-    const result = await surveyService.getResult(id);
+    const LIKERT_MODULES: Record<string, string> = {
+      QCI: 'M2_QCI',
+      UWES: 'M4_UWES',
+      PKE: 'M5_PKE',
+      SPU: 'M6_SPU',
+    };
+
+    let result;
+    if (moduleParam && LIKERT_MODULES[moduleParam]) {
+      result = await surveyService.getLikertResult(id, LIKERT_MODULES[moduleParam]);
+    } else {
+      result = await surveyService.getResult(id);
+    }
 
     if (!result.success) {
       return reply.status(404).send({
@@ -38,13 +198,15 @@ export async function surveyRoutes(app: FastifyInstance) {
     reply.send({ success: true, data: result.data });
   });
 
-  // POST /survey/submit — OCAI yanıtlarını kaydet
+  // POST /survey/submit — Anket yanıtlarını kaydet (OCAI, QCI, UWES)
   app.post('/submit', { preHandler: [requireAuth] }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { sub, org } = request.user as { sub: string; org: string };
-    const { answers } = request.body as {
-      answers: Record<string, Record<string, Record<string, number>>>;
-      // answers[dimensionId][perspective][alternative] = points
+    const body = request.body as {
+      moduleCode?: string;
+      answers: Record<string, any>;
     };
+
+    const { answers, moduleCode } = body;
 
     if (!answers || typeof answers !== 'object') {
       return reply.status(400).send({
@@ -54,7 +216,14 @@ export async function surveyRoutes(app: FastifyInstance) {
     }
 
     try {
-      const result = await surveyService.submitOCAI(org, sub, answers);
+      let result;
+
+      const LIKERT_CODES = ['M2_QCI', 'M4_UWES', 'M5_PKE', 'M6_SPU'];
+      if (moduleCode && LIKERT_CODES.includes(moduleCode)) {
+        result = await surveyService.submitLikert(org, sub, moduleCode as any, answers as Record<string, number>);
+      } else {
+        result = await surveyService.submitOCAI(org, sub, answers as Record<string, Record<string, Record<string, number>>>);
+      }
 
       if (!result.success) {
         return reply.status(400).send({

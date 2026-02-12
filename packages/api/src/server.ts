@@ -7,6 +7,9 @@ import { errorHandler } from './middleware/error-handler';
 import { authRoutes } from './modules/auth/routes';
 import { userRoutes } from './modules/users/routes';
 import { surveyRoutes } from './modules/survey/routes';
+import { campaignRoutes } from './modules/campaigns/routes';
+import { analyticsRoutes } from './modules/analytics/routes';
+import { reportsRoutes } from './modules/reports/routes';
 
 const app = Fastify({
   logger: {
@@ -48,6 +51,9 @@ async function bootstrap() {
   await app.register(authRoutes, { prefix: '/auth' });
   await app.register(userRoutes, { prefix: '/users' });
   await app.register(surveyRoutes, { prefix: '/survey' });
+  await app.register(campaignRoutes, { prefix: '/campaigns' });
+  await app.register(analyticsRoutes, { prefix: '/analytics' });
+  await app.register(reportsRoutes, { prefix: '/reports' });
 
   // ── Start ──
   const port = Number(config.PORT);

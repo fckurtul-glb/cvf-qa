@@ -4,8 +4,14 @@ import { usePathname, useRouter } from 'next/navigation';
 
 const navLinks = [
   { href: '/dashboard', label: 'Genel Bakış' },
+  { href: '/dashboard/campaigns', label: 'Kampanyalar' },
+  { href: '/dashboard/reports', label: 'Raporlar' },
   { href: '/dashboard/users', label: 'Kullanıcılar' },
-  { href: '/survey/ocai', label: 'OCAI Anket' },
+  { href: '/survey/ocai', label: 'OCAI' },
+  { href: '/survey/qci', label: 'QCI' },
+  { href: '/survey/uwes', label: 'UWES' },
+  { href: '/survey/pke', label: 'PKE' },
+  { href: '/survey/spu', label: 'SPU' },
 ];
 
 export function Navbar() {
