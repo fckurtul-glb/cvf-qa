@@ -27,13 +27,34 @@ model Organization {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  users       User[]
-  departments Department[]
-  campaigns   SurveyCampaign[]
-  reports     Report[]
-  auditLogs   AuditLog[]
+  users        User[]
+  departments  Department[]
+  campaigns    SurveyCampaign[]
+  reports      Report[]
+  auditLogs    AuditLog[]
+  inviteTokens OrgInviteToken[]
+  emailLogs    EmailLog[]
 
   @@map("organizations")
+}
+
+model OrgInviteToken {
+  id          String    @id @default(cuid())
+  orgId       String
+  token       String    @unique
+  email       String    // Davet edilen e-posta
+  role        UserRole  @default(ORG_ADMIN)
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdById String
+  createdAt   DateTime  @default(now())
+
+  organization Organization @relation(fields: [orgId], references: [id])
+  createdBy    User         @relation("InviteCreator", fields: [createdById], references: [id])
+
+  @@index([token])
+  @@index([orgId])
+  @@map("org_invite_tokens")
 }
 
 model User {
@@ -61,6 +82,7 @@ model User {
   surveyTokens SurveyToken[]
   assessment360Configs Assessment360Config[] @relation("AssessedManager")
   assessment360Ratings Assessment360Rater[]
+  createdInvites OrgInviteToken[] @relation("InviteCreator")
 
   @@index([orgId])
   @@index([emailHash])
@@ -333,4 +355,37 @@ enum ReportType {
   INDIVIDUAL_360
   YOKAK_EVIDENCE
   COMPARATIVE
+}
+
+enum EmailStatus {
+  QUEUED
+  SENT
+  FAILED
+  BOUNCED
+}
+
+// ════════════════════════════════════
+// EMAIL LOGGING
+// ════════════════════════════════════
+
+model EmailLog {
+  id           String      @id @default(cuid())
+  orgId        String?
+  campaignId   String?
+  toAddress    String      // AES-256 encrypted
+  subject      String
+  template     String      // 'survey-invitation' | 'org-invitation' | ...
+  status       EmailStatus @default(QUEUED)
+  messageId    String?     // Resend message ID
+  errorMessage String?
+  jobId        String?     // BullMQ job ID
+  sentAt       DateTime?
+  failedAt     DateTime?
+  createdAt    DateTime    @default(now())
+
+  organization Organization? @relation(fields: [orgId], references: [id])
+
+  @@index([orgId, createdAt])
+  @@index([status])
+  @@map("email_logs")
 }

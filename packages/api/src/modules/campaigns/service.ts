@@ -4,8 +4,8 @@ import { nanoid } from 'nanoid';
 import crypto from 'crypto';
 import { config } from '../../config/env';
 import { emailQueue } from '../../jobs/email-sender';
-import { ANONYMITY } from '@cvf-qa/shared';
-import type { CampaignStatus, StakeholderGroup, ModuleCode } from '@cvf-qa/shared';
+import { ANONYMITY, TIER_CAPABILITY_DEFAULTS } from '@cvf-qa/shared';
+import type { CampaignStatus, StakeholderGroup, ModuleCode, OrgCapabilities, PackageTier } from '@cvf-qa/shared';
 
 interface CreateCampaignInput {
   orgId: string;
@@ -25,6 +25,19 @@ interface LaunchResult {
   errors: string[];
 }
 
+export function resolveCapabilities(org: { packageTier: string; settings: any }): OrgCapabilities {
+  const tier = org.packageTier.toLowerCase() as PackageTier;
+  const defaults = TIER_CAPABILITY_DEFAULTS[tier] ?? TIER_CAPABILITY_DEFAULTS.starter;
+  const overrides = (org.settings as any)?.capabilities ?? {};
+
+  return {
+    allowedModules: overrides.allowedModules ?? defaults.allowedModules,
+    features: { ...defaults.features, ...(overrides.features ?? {}) },
+    allowedReports: overrides.allowedReports ?? defaults.allowedReports,
+    limits: { ...defaults.limits, ...(overrides.limits ?? {}) },
+  };
+}
+
 class CampaignService {
   // ── Kampanya Oluşturma ──
   async create(input: CreateCampaignInput) {
@@ -33,10 +46,20 @@ class CampaignService {
     if (!org) throw new Error('Kurum bulunamadı');
     if (!org.isActive) throw new Error('Kurum hesabı devre dışı');
 
-    const allowedModules = (org.settings as any)?.allowedModules ?? [];
-    const unauthorized = input.modules.filter((m) => !allowedModules.includes(m));
+    const capabilities = resolveCapabilities(org);
+    const unauthorized = input.modules.filter((m) => !capabilities.allowedModules.includes(m as ModuleCode));
     if (unauthorized.length > 0) {
       throw new Error(`Bu modüller paketinizde yok: ${unauthorized.join(', ')}`);
+    }
+
+    // maxCampaigns limit kontrolü
+    if (capabilities.limits.maxCampaigns !== -1) {
+      const activeCampaignCount = await prisma.surveyCampaign.count({
+        where: { orgId: input.orgId, status: { notIn: ['ARCHIVED', 'COMPLETED'] } },
+      });
+      if (activeCampaignCount >= capabilities.limits.maxCampaigns) {
+        throw new Error(`Aktif kampanya limiti (${capabilities.limits.maxCampaigns}) aşıldı`);
+      }
     }
 
     const campaign = await prisma.surveyCampaign.create({
@@ -91,8 +114,9 @@ class CampaignService {
       },
     });
 
-    // Katılımcı limit kontrolü
-    const maxParticipants = (campaign.organization.settings as any)?.maxParticipants ?? 500;
+    // Katılımcı limit kontrolü — resolveCapabilities kullan
+    const capabilities = resolveCapabilities(campaign.organization);
+    const maxParticipants = capabilities.limits.maxParticipantsPerCampaign;
     if (participants.length > maxParticipants) {
       throw new Error(`Katılımcı sayısı (${participants.length}) paket limitini (${maxParticipants}) aşıyor`);
     }
@@ -122,7 +146,7 @@ class CampaignService {
         });
         tokensGenerated++;
 
-        // E-posta kuyruğuna ekle (BullMQ)
+        // E-posta kuyruğuna ekle (BullMQ) — orgId dahil
         await emailQueue.add('survey-invitation', {
           to: user.id, // Email, auth service'de decrypt edilecek
           subject: `${campaign.name} — Anket Davetiyesi`,
@@ -133,6 +157,8 @@ class CampaignService {
             surveyUrl: `${process.env.NEXT_PUBLIC_APP_URL}/survey/start?t=${rawToken}`,
             expiresAt: campaign.closesAt?.toISOString(),
           },
+          orgId: campaign.orgId,
+          campaignId: campaign.id,
         });
         emailsSent++;
       } catch (err: any) {
@@ -195,7 +221,7 @@ class CampaignService {
   async sendReminders(campaignId: string) {
     const pending = await prisma.surveyToken.findMany({
       where: { campaignId, usedCount: 0, expiresAt: { gt: new Date() } },
-      include: { user: true },
+      include: { user: true, campaign: true },
     });
 
     let sent = 0;
@@ -205,6 +231,8 @@ class CampaignService {
         subject: 'Anket Hatırlatması',
         template: 'survey-reminder',
         data: { surveyUrl: `${process.env.NEXT_PUBLIC_APP_URL}/survey/start?t=${token.tokenHash}` },
+        orgId: token.campaign.orgId,
+        campaignId: token.campaignId,
       });
       sent++;
     }

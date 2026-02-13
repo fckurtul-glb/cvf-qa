@@ -1,9 +1,233 @@
 import type { FastifyInstance } from 'fastify';
-import { requireAuth, requireRole } from '../../middleware/auth';
+import { requireRole } from '../../middleware/auth';
+import { validate } from '../../middleware/validate';
+import { organizationsService } from './service';
+import {
+  createOrganizationSchema,
+  updateOrganizationSchema,
+  createInviteSchema,
+  listOrganizationsSchema,
+  updateCapabilitiesSchema,
+  emailLogQuerySchema,
+  orgUsersQuerySchema,
+} from './schema';
+import { queueOrgInvitation } from '../../jobs/email-sender';
+import { config } from '../../config/env';
 
 export async function organizationsRoutes(app: FastifyInstance) {
-  // TODO: Implement organizations routes per API endpoint map
-  app.get('/', { preHandler: requireAuth }, async (request, reply) => {
-    reply.send({ module: 'organizations', status: 'not_implemented' });
+  // GET /organizations — Kurum listesi (SUPER_ADMIN)
+  app.get('/', { preHandler: [requireRole('SUPER_ADMIN')] }, async (request, reply) => {
+    const query = listOrganizationsSchema.parse(request.query);
+    const result = await organizationsService.list(query.page, query.limit, query.search);
+    reply.send(result);
+  });
+
+  // GET /organizations/:id — Kurum detayı (SUPER_ADMIN)
+  app.get('/:id', { preHandler: [requireRole('SUPER_ADMIN')] }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const result = await organizationsService.getById(id);
+    if (!result.success) {
+      return reply.status(404).send({ success: false, error: { code: 'NOT_FOUND', message: result.error } });
+    }
+    reply.send(result);
+  });
+
+  // POST /organizations — Yeni kurum oluştur (SUPER_ADMIN)
+  app.post('/', { preHandler: [requireRole('SUPER_ADMIN'), validate(createOrganizationSchema)] }, async (request, reply) => {
+    const { name, domain, packageTier } = request.body as { name: string; domain: string; packageTier: 'STARTER' | 'PROFESSIONAL' | 'ENTERPRISE' };
+    const result = await organizationsService.create(name, domain, packageTier);
+    if (!result.success) {
+      return reply.status(409).send({ success: false, error: { code: 'CONFLICT', message: result.error } });
+    }
+    reply.status(201).send(result);
+  });
+
+  // PUT /organizations/:id — Güncelle (SUPER_ADMIN)
+  app.put('/:id', { preHandler: [requireRole('SUPER_ADMIN'), validate(updateOrganizationSchema)] }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const data = request.body as { name?: string; domain?: string; packageTier?: 'STARTER' | 'PROFESSIONAL' | 'ENTERPRISE'; settings?: Record<string, unknown> };
+    const result = await organizationsService.update(id, data);
+    if (!result.success) {
+      return reply.status(result.error === 'Kurum bulunamadı' ? 404 : 409).send({ success: false, error: { code: result.error === 'Kurum bulunamadı' ? 'NOT_FOUND' : 'CONFLICT', message: result.error } });
+    }
+    reply.send(result);
+  });
+
+  // PATCH /organizations/:id/deactivate — Pasifleştir (SUPER_ADMIN)
+  app.patch('/:id/deactivate', { preHandler: [requireRole('SUPER_ADMIN')] }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const result = await organizationsService.deactivate(id);
+    if (!result.success) {
+      return reply.status(404).send({ success: false, error: { code: 'NOT_FOUND', message: result.error } });
+    }
+    reply.send(result);
+  });
+
+  // POST /organizations/:id/invite — ORG_ADMIN davet linki (SUPER_ADMIN)
+  app.post('/:id/invite', { preHandler: [requireRole('SUPER_ADMIN'), validate(createInviteSchema)] }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { email, role } = request.body as { email: string; role: 'ORG_ADMIN' | 'UNIT_ADMIN' };
+    const { sub } = (request as any).user as { sub: string };
+
+    const result = await organizationsService.createInviteToken(id, email, role, sub);
+    if (!result.success) {
+      return reply.status(404).send({ success: false, error: { code: 'NOT_FOUND', message: result.error } });
+    }
+
+    // E-posta gönder
+    const registerUrl = `${config.CORS_ORIGINS.split(',')[0]}/auth/register?token=${result.data!.token}`;
+    await queueOrgInvitation(email, result.data!.orgName, registerUrl, result.data!.role, result.data!.expiresAt, id);
+
+    reply.status(201).send({
+      success: true,
+      data: {
+        id: result.data!.id,
+        email: result.data!.email,
+        role: result.data!.role,
+        expiresAt: result.data!.expiresAt,
+        registerUrl,
+      },
+    });
+  });
+
+  // ════════════════════════════════════
+  // CAPABILITY MANAGEMENT
+  // ════════════════════════════════════
+
+  // GET /organizations/:id/capabilities — Çözümlenmiş yetenekler
+  app.get('/:id/capabilities', { preHandler: [requireRole('SUPER_ADMIN')] }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const result = await organizationsService.getCapabilities(id);
+    if (!result.success) {
+      return reply.status(404).send({ success: false, error: { code: 'NOT_FOUND', message: result.error } });
+    }
+    reply.send(result);
+  });
+
+  // PUT /organizations/:id/capabilities — Override güncelle
+  app.put('/:id/capabilities', { preHandler: [requireRole('SUPER_ADMIN'), validate(updateCapabilitiesSchema)] }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const overrides = request.body as any;
+    const result = await organizationsService.updateCapabilities(id, overrides);
+    if (!result.success) {
+      return reply.status(404).send({ success: false, error: { code: 'NOT_FOUND', message: result.error } });
+    }
+    reply.send(result);
+  });
+
+  // DELETE /organizations/:id/capabilities — Override sıfırla
+  app.delete('/:id/capabilities', { preHandler: [requireRole('SUPER_ADMIN')] }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const result = await organizationsService.resetCapabilities(id);
+    if (!result.success) {
+      return reply.status(404).send({ success: false, error: { code: 'NOT_FOUND', message: result.error } });
+    }
+    reply.send(result);
+  });
+
+  // ════════════════════════════════════
+  // EMAIL LOGS
+  // ════════════════════════════════════
+
+  // GET /organizations/:id/email-logs — E-posta logları
+  app.get('/:id/email-logs', { preHandler: [requireRole('SUPER_ADMIN')] }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const query = emailLogQuerySchema.parse(request.query);
+    const result = await organizationsService.getEmailLogs(id, query.page, query.limit, {
+      status: query.status,
+      template: query.template,
+    });
+    reply.send(result);
+  });
+
+  // GET /organizations/:id/email-logs/stats — E-posta istatistikleri
+  app.get('/:id/email-logs/stats', { preHandler: [requireRole('SUPER_ADMIN')] }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const result = await organizationsService.getEmailStats(id);
+    reply.send(result);
+  });
+
+  // ════════════════════════════════════
+  // USER MANAGEMENT
+  // ════════════════════════════════════
+
+  // GET /organizations/:id/users — Kurum kullanıcıları (tüm roller)
+  app.get('/:id/users', { preHandler: [requireRole('SUPER_ADMIN')] }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const query = orgUsersQuerySchema.parse(request.query);
+    const result = await organizationsService.listOrgUsers(id, query.page, query.limit, {
+      role: query.role,
+      isActive: query.isActive,
+    });
+    reply.send(result);
+  });
+
+  // PATCH /organizations/:id/users/:userId/toggle — Aktif/pasif toggle
+  app.patch('/:id/users/:userId/toggle', { preHandler: [requireRole('SUPER_ADMIN')] }, async (request, reply) => {
+    const { id, userId } = request.params as { id: string; userId: string };
+    const { isActive } = request.body as { isActive: boolean };
+    const { sub } = (request as any).user as { sub: string };
+    const result = await organizationsService.toggleUserActive(id, userId, isActive, sub);
+    if (!result.success) {
+      return reply.status(404).send({ success: false, error: { code: 'NOT_FOUND', message: result.error } });
+    }
+    reply.send(result);
+  });
+
+  // ════════════════════════════════════
+  // CAMPAIGN MANAGEMENT
+  // ════════════════════════════════════
+
+  // GET /organizations/:id/campaigns — Kurum kampanyaları
+  app.get('/:id/campaigns', { preHandler: [requireRole('SUPER_ADMIN')] }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { page = '1', limit = '50' } = request.query as { page?: string; limit?: string };
+    const result = await organizationsService.listOrgCampaigns(id, parseInt(page), parseInt(limit));
+    reply.send(result);
+  });
+
+  // PATCH /organizations/:id/campaigns/:campaignId/pause — Kampanya durdur
+  app.patch('/:id/campaigns/:campaignId/pause', { preHandler: [requireRole('SUPER_ADMIN')] }, async (request, reply) => {
+    const { id, campaignId } = request.params as { id: string; campaignId: string };
+    const { sub } = (request as any).user as { sub: string };
+    const result = await organizationsService.pauseCampaign(id, campaignId, sub);
+    if (!result.success) {
+      return reply.status(result.error === 'Kampanya bulunamadı' ? 404 : 400).send({
+        success: false,
+        error: { code: result.error === 'Kampanya bulunamadı' ? 'NOT_FOUND' : 'BAD_REQUEST', message: result.error },
+      });
+    }
+    reply.send(result);
+  });
+
+  // ════════════════════════════════════
+  // INVITE REVOCATION
+  // ════════════════════════════════════
+
+  // DELETE /organizations/:id/invites/:inviteId — Davet iptal
+  app.delete('/:id/invites/:inviteId', { preHandler: [requireRole('SUPER_ADMIN')] }, async (request, reply) => {
+    const { id, inviteId } = request.params as { id: string; inviteId: string };
+    const { sub } = (request as any).user as { sub: string };
+    const result = await organizationsService.revokeInvite(inviteId, sub);
+    if (!result.success) {
+      return reply.status(result.error === 'Davet bulunamadı' ? 404 : 400).send({
+        success: false,
+        error: { code: result.error === 'Davet bulunamadı' ? 'NOT_FOUND' : 'BAD_REQUEST', message: result.error },
+      });
+    }
+    reply.send(result);
+  });
+}
+
+// Public route — Token doğrulama (auth gerekmez)
+export async function inviteRoutes(app: FastifyInstance) {
+  // GET /invite/:token — Token doğrula (PUBLIC)
+  app.get('/:token', { config: { skipCsrf: true } as any }, async (request, reply) => {
+    const { token } = request.params as { token: string };
+    const result = await organizationsService.validateInviteToken(token);
+    if (!result.success) {
+      return reply.status(400).send({ success: false, error: { code: 'INVALID_TOKEN', message: result.error } });
+    }
+    reply.send(result);
   });
 }

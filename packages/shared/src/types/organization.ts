@@ -10,6 +10,25 @@ export interface Organization {
   settings: OrgSettings;
 }
 
+export type ReportCode = 'INSTITUTIONAL' | 'DEPARTMENT' | 'INDIVIDUAL_360' | 'YOKAK_EVIDENCE' | 'COMPARATIVE';
+
+export interface OrgCapabilities {
+  allowedModules: import('./survey').ModuleCode[];
+  features: {
+    assessment360: boolean;
+    gapAnalysis: boolean;
+    descriptiveAnalytics: boolean;
+    departmentComparison: boolean;
+    stakeholderComparison: boolean;
+  };
+  allowedReports: ReportCode[];
+  limits: {
+    maxUsers: number;                  // -1 = unlimited
+    maxCampaigns: number;              // -1 = unlimited
+    maxParticipantsPerCampaign: number;
+  };
+}
+
 export interface OrgSettings {
   allowedModules: import('./survey').ModuleCode[];
   maxParticipants: number;
@@ -17,6 +36,7 @@ export interface OrgSettings {
   ssoProvider?: 'saml' | 'oidc';
   logoUrl?: string;
   primaryColor?: string;
+  capabilities?: Partial<OrgCapabilities>;
 }
 
 export interface Department {

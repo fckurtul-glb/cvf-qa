@@ -48,3 +48,56 @@ export const ENCRYPTION = {
   PASSWORD_HASH: 'argon2id',
   TOKEN_HASH: 'hmac-sha256',
 } as const;
+
+import type { OrgCapabilities, PackageTier } from '../types/organization';
+
+export const TIER_CAPABILITY_DEFAULTS: Record<PackageTier, OrgCapabilities> = {
+  starter: {
+    allowedModules: ['M1_OCAI', 'M2_QCI', 'M4_UWES'],
+    features: {
+      assessment360: false,
+      gapAnalysis: true,
+      descriptiveAnalytics: true,
+      departmentComparison: false,
+      stakeholderComparison: false,
+    },
+    allowedReports: ['INSTITUTIONAL'],
+    limits: {
+      maxUsers: 100,
+      maxCampaigns: 3,
+      maxParticipantsPerCampaign: 200,
+    },
+  },
+  professional: {
+    allowedModules: ['M1_OCAI', 'M2_QCI', 'M4_UWES', 'M5_PKE', 'M6_SPU'],
+    features: {
+      assessment360: false,
+      gapAnalysis: true,
+      descriptiveAnalytics: true,
+      departmentComparison: true,
+      stakeholderComparison: true,
+    },
+    allowedReports: ['INSTITUTIONAL', 'DEPARTMENT', 'YOKAK_EVIDENCE', 'COMPARATIVE'],
+    limits: {
+      maxUsers: 500,
+      maxCampaigns: 10,
+      maxParticipantsPerCampaign: 500,
+    },
+  },
+  enterprise: {
+    allowedModules: ['M1_OCAI', 'M2_QCI', 'M3_MSAI', 'M4_UWES', 'M5_PKE', 'M6_SPU'],
+    features: {
+      assessment360: true,
+      gapAnalysis: true,
+      descriptiveAnalytics: true,
+      departmentComparison: true,
+      stakeholderComparison: true,
+    },
+    allowedReports: ['INSTITUTIONAL', 'DEPARTMENT', 'INDIVIDUAL_360', 'YOKAK_EVIDENCE', 'COMPARATIVE'],
+    limits: {
+      maxUsers: 2000,
+      maxCampaigns: -1,
+      maxParticipantsPerCampaign: 2000,
+    },
+  },
+} as const;
