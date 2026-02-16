@@ -35,30 +35,58 @@ export const metadata: Metadata = {
     title: 'CVF-QA | Kurumsal Kültür Değerlendirme Platformu',
     description: 'Yükseköğretim kurumları için bütünleşik kurumsal kültür değerlendirme ve YÖKAK akreditasyon destek platformu.',
   },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'CVF-QA | Kurumsal Kültür Değerlendirme Platformu',
+    description: 'Yükseköğretim kurumları için bütünleşik kurumsal kültür değerlendirme ve YÖKAK akreditasyon destek platformu.',
+  },
   robots: {
     index: true,
     follow: true,
   },
 };
 
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://cvf-qa.com.tr';
+
 const jsonLd = {
   '@context': 'https://schema.org',
-  '@type': 'WebApplication',
-  name: 'CVF-QA',
-  description: 'Yükseköğretim kurumları için kurumsal kültür değerlendirme platformu',
-  url: process.env.NEXT_PUBLIC_APP_URL || 'https://cvf-qa.com.tr',
-  applicationCategory: 'EducationalApplication',
-  operatingSystem: 'Web',
-  offers: {
-    '@type': 'AggregateOffer',
-    priceCurrency: 'TRY',
-    availability: 'https://schema.org/InStock',
-  },
-  creator: {
-    '@type': 'Organization',
-    name: 'CVF-QA',
-    url: process.env.NEXT_PUBLIC_APP_URL || 'https://cvf-qa.com.tr',
-  },
+  '@graph': [
+    {
+      '@type': 'Organization',
+      '@id': `${baseUrl}/#organization`,
+      name: 'CVF-QA',
+      url: baseUrl,
+      logo: `${baseUrl}/logo.png`,
+      description: 'Yükseköğretim kurumları için bütünleşik kurumsal kültür değerlendirme ve YÖKAK akreditasyon destek platformu.',
+      contactPoint: {
+        '@type': 'ContactPoint',
+        email: 'destek@cvf-qa.com.tr',
+        contactType: 'customer support',
+        availableLanguage: 'Turkish',
+      },
+      address: {
+        '@type': 'PostalAddress',
+        addressCountry: 'TR',
+        addressLocality: 'İstanbul',
+      },
+    },
+    {
+      '@type': 'SoftwareApplication',
+      name: 'CVF-QA',
+      description: 'Yükseköğretim kurumları için kurumsal kültür değerlendirme platformu. 6 bilimsel ölçek, YÖKAK kanıt dosyası, 360° liderlik analizi.',
+      url: baseUrl,
+      applicationCategory: 'EducationalApplication',
+      operatingSystem: 'Web',
+      offers: {
+        '@type': 'AggregateOffer',
+        priceCurrency: 'TRY',
+        availability: 'https://schema.org/InStock',
+      },
+      creator: { '@id': `${baseUrl}/#organization` },
+      featureList: 'OCAI+ Kültür Profili, QCI-TR Kalite Kültürü, MSAI-YÖ 360° Liderlik, UWES-TR Çalışan Bağlılığı, PKE Paydaş Katılımı, SPU Stratejik Plan Uyumu',
+      inLanguage: 'tr',
+    },
+  ],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
