@@ -2,8 +2,13 @@
 
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-
-const API = 'http://localhost:3001';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
+import { toast } from '@/hooks/use-toast';
+import { API_URL } from '@/lib/constants';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -18,7 +23,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const res = await fetch(`${API}/auth/login`, {
+      const res = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -33,6 +38,7 @@ export default function LoginPage() {
       }
 
       localStorage.setItem('token', data.data.accessToken);
+      toast({ title: 'Giriş başarılı', description: 'Yönlendiriliyorsunuz...' });
       router.push('/dashboard');
     } catch {
       setError('Sunucuya bağlanılamadı');
@@ -41,134 +47,58 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={styles.wrapper}>
-      <div style={styles.card}>
-        <div style={styles.logo}>QA</div>
-        <h1 style={styles.title}>CVF-QA</h1>
-        <p style={styles.subtitle}>Kurumsal Kültür Değerlendirme Platformu</p>
-
-        <form onSubmit={handleSubmit} style={styles.form}>
-          <div style={styles.field}>
-            <label htmlFor="email" style={styles.label}>E-posta</label>
-            <input
-              id="email"
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="ornek@kurum.edu.tr"
-              style={styles.input}
-            />
+    <div className="min-h-screen flex items-center justify-center p-5 bg-background">
+      <Card className="w-full max-w-[400px]">
+        <CardContent className="pt-12 pb-10 px-10">
+          <div className="flex flex-col items-center text-center mb-8">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-gradient-to-br from-primary to-primary/70 text-white font-bold text-[22px] mb-4">
+              QA
+            </div>
+            <h1 className="text-[28px] font-bold text-foreground">CVF-QA</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Kurumsal Kültür Değerlendirme Platformu
+            </p>
           </div>
 
-          <div style={styles.field}>
-            <label htmlFor="password" style={styles.label}>Şifre</label>
-            <input
-              id="password"
-              type="password"
-              required
-              minLength={8}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Minimum 8 karakter"
-              style={styles.input}
-            />
-          </div>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="space-y-1.5">
+              <Label htmlFor="email">E-posta</Label>
+              <Input
+                id="email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="ornek@kurum.edu.tr"
+              />
+            </div>
 
-          {error && <div style={styles.error}>{error}</div>}
+            <div className="space-y-1.5">
+              <Label htmlFor="password">Şifre</Label>
+              <Input
+                id="password"
+                type="password"
+                required
+                minLength={8}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Minimum 8 karakter"
+              />
+            </div>
 
-          <button type="submit" disabled={loading} style={{
-            ...styles.button,
-            opacity: loading ? 0.7 : 1,
-            cursor: loading ? 'not-allowed' : 'pointer',
-          }}>
-            {loading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
-          </button>
-        </form>
-      </div>
+            {error && (
+              <div className="rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm px-4 py-2.5">
+                {error}
+              </div>
+            )}
+
+            <Button type="submit" disabled={loading} className="w-full">
+              {loading && <Spinner className="mr-2" />}
+              {loading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  wrapper: {
-    minHeight: '100vh',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  card: {
-    background: '#fff',
-    borderRadius: 12,
-    border: '1px solid #e0e0e0',
-    padding: '48px 40px',
-    width: '100%',
-    maxWidth: 400,
-    textAlign: 'center',
-  },
-  logo: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 56,
-    height: 56,
-    borderRadius: 14,
-    background: 'linear-gradient(135deg, #2E86AB, #3A9BC5)',
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 22,
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 28,
-    margin: '0 0 4px',
-    color: '#0F1D2F',
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#888',
-    margin: '0 0 32px',
-  },
-  form: {
-    textAlign: 'left',
-  },
-  field: {
-    marginBottom: 20,
-  },
-  label: {
-    display: 'block',
-    fontSize: 14,
-    fontWeight: 500,
-    marginBottom: 6,
-    color: '#333',
-  },
-  input: {
-    width: '100%',
-    padding: '10px 12px',
-    fontSize: 15,
-    border: '1px solid #d0d0d0',
-    borderRadius: 8,
-    outline: 'none',
-    boxSizing: 'border-box',
-  },
-  error: {
-    background: '#fef2f2',
-    border: '1px solid #fca5a5',
-    color: '#b91c1c',
-    borderRadius: 8,
-    padding: '10px 14px',
-    fontSize: 14,
-    marginBottom: 20,
-  },
-  button: {
-    width: '100%',
-    padding: '12px 0',
-    fontSize: 16,
-    fontWeight: 600,
-    color: '#fff',
-    background: 'linear-gradient(135deg, #2E86AB, #3A9BC5)',
-    border: 'none',
-    borderRadius: 8,
-  },
-};

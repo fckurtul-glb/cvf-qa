@@ -35,7 +35,7 @@ export function PackageCards() {
     <section className="bg-muted/30 py-20">
       <div className="container mx-auto px-4">
         <div className="mx-auto mb-12 max-w-2xl text-center">
-          <h2 className="mb-4 text-3xl font-bold text-navy md:text-4xl">Paketler</h2>
+          <h2 className="mb-4 font-display text-3xl font-bold text-navy md:text-4xl">Paketler</h2>
           <p className="text-lg text-muted-foreground">Kurumunuzun ihtiyacına uygun paketi seçin.</p>
         </div>
 
