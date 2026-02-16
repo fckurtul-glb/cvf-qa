@@ -309,7 +309,7 @@ export function SurveyFlowController({
           <button
             disabled={saving}
             onClick={handleSubmit}
-            className="w-full py-3 bg-gradient-to-r from-gold to-gold-light text-navy font-semibold rounded-xl hover:shadow-lg transition"
+            className="w-full py-3 bg-gradient-to-r from-accent to-accent/80 text-accent-foreground font-semibold rounded-xl hover:shadow-lg transition"
           >
             {saving ? 'Gönderiliyor...' : 'Yanıtları Gönder ✓'}
           </button>
@@ -339,7 +339,7 @@ export function SurveyFlowController({
           </div>
           <div className="w-full bg-slate-100 rounded-full h-1.5">
             <div
-              className="bg-gradient-to-r from-accent to-gold h-1.5 rounded-full transition-all duration-500"
+              className="bg-gradient-to-r from-primary to-secondary h-1.5 rounded-full transition-all duration-500"
               style={{ width: `${progress}%` }}
             />
           </div>

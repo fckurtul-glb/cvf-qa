@@ -78,7 +78,7 @@ export function IpsativeWidget({
           </span>
           <span className={cn(
             'text-xs font-semibold px-2 py-1 rounded-full',
-            perspective === 'current' ? 'bg-accent/10 text-accent' : 'bg-gold/20 text-gold-dark'
+            perspective === 'current' ? 'bg-accent/10 text-accent' : 'bg-frosted/20 text-frosted-foreground'
           )}>
             {perspective === 'current' ? 'MEVCUT DURUM' : 'TERCİH EDİLEN'}
           </span>
