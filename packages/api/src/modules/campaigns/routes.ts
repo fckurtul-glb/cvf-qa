@@ -1,11 +1,13 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { requireAuth, requireRole } from '../../middleware/auth';
+import { validate } from '../../middleware/validate';
+import { createCampaignSchema, updateCampaignSchema } from './schema';
 import { campaignService } from './service';
 import { prisma } from '../../config/database';
 
 export async function campaignRoutes(app: FastifyInstance) {
   // POST /campaigns — Yeni kampanya oluştur
-  app.post('/', { preHandler: requireRole('ORG_ADMIN', 'SUPER_ADMIN') }, async (request: FastifyRequest, reply: FastifyReply) => {
+  app.post('/', { preHandler: requireRole('ORG_ADMIN', 'SUPER_ADMIN'), preValidation: [validate(createCampaignSchema)] }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { sub, org } = request.user as { sub: string; org: string };
     const body = request.body as {
       name: string;
@@ -14,13 +16,6 @@ export async function campaignRoutes(app: FastifyInstance) {
       targetGroups: string[];
       closesAt: string;
     };
-
-    if (!body.name || !body.modules?.length || !body.targetGroups?.length || !body.closesAt) {
-      return reply.status(400).send({
-        success: false,
-        error: { code: 'BAD_REQUEST', message: 'Ad, modüller, hedef gruplar ve bitiş tarihi gereklidir' },
-      });
-    }
 
     try {
       const campaign = await campaignService.create({
@@ -125,7 +120,7 @@ export async function campaignRoutes(app: FastifyInstance) {
   });
 
   // PUT /campaigns/:id — Kampanya güncelle
-  app.put('/:id', { preHandler: requireRole('ORG_ADMIN', 'SUPER_ADMIN') }, async (request: FastifyRequest, reply: FastifyReply) => {
+  app.put('/:id', { preHandler: requireRole('ORG_ADMIN', 'SUPER_ADMIN'), preValidation: [validate(updateCampaignSchema)] }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
     const { org } = request.user as { sub: string; org: string };
     const body = request.body as {
@@ -197,6 +192,49 @@ export async function campaignRoutes(app: FastifyInstance) {
         error: { code: 'NOT_FOUND', message: err.message },
       });
     }
+  });
+
+  // GET /campaigns/dashboard-stats — Dashboard özet istatistikleri
+  app.get('/dashboard-stats', { preHandler: [requireAuth] }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const { org } = request.user as { sub: string; org: string };
+
+    const [campaigns, totalResponses, totalReports] = await Promise.all([
+      prisma.surveyCampaign.findMany({
+        where: { orgId: org },
+        include: { _count: { select: { tokens: true, responses: true } } },
+      }),
+      prisma.surveyResponse.count({
+        where: { campaign: { orgId: org }, status: 'COMPLETED' },
+      }),
+      prisma.auditLog.count({
+        where: { orgId: org, action: 'report.generate' },
+      }),
+    ]);
+
+    const activeCampaigns = campaigns.filter((c) => c.status === 'ACTIVE').length;
+    const totalInvited = campaigns.reduce((sum, c) => sum + c._count.tokens, 0);
+    const avgResponseRate = totalInvited > 0 ? Math.round((totalResponses / totalInvited) * 100) : 0;
+
+    // Modül bazlı yanıt oranları
+    const moduleStats = await prisma.surveyAnswer.groupBy({
+      by: ['moduleCode'],
+      where: { response: { campaign: { orgId: org }, status: 'COMPLETED' } },
+      _count: true,
+    });
+
+    reply.send({
+      success: true,
+      data: {
+        activeCampaigns,
+        totalResponses,
+        avgResponseRate,
+        totalReports,
+        moduleStats: moduleStats.map((m) => ({
+          name: m.moduleCode,
+          count: m._count,
+        })),
+      },
+    });
   });
 
   // POST /campaigns/:id/remind — Hatırlatma gönder

@@ -12,6 +12,11 @@ dotenvConfig({ path: resolve(pkgDir, '.env') });
 dotenvConfig({ path: resolve(rootDir, '.env.local') });
 dotenvConfig({ path: resolve(rootDir, '.env') });
 
+const isProduction = process.env.NODE_ENV === 'production';
+
+// Production'da hardcoded dev key'ler kabul edilmez
+const DEV_DEFAULTS = ['dev-otp-secret-key-16', 'dev-magic-link-secret'];
+
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.string().default('3001'),
@@ -47,5 +52,31 @@ const envSchema = z.object({
   SENTRY_DSN: z.string().optional(),
 });
 
-export const config = envSchema.parse(process.env);
+const parsed = envSchema.parse(process.env);
+
+// Production güvenlik kontrolü: hardcoded dev key'ler varsa hata fırlat
+if (isProduction) {
+  const errors: string[] = [];
+
+  if (DEV_DEFAULTS.includes(parsed.OTP_SECRET_KEY)) {
+    errors.push('OTP_SECRET_KEY production ortamında hardcoded dev değeri kullanılamaz');
+  }
+  if (DEV_DEFAULTS.includes(parsed.MAGIC_LINK_SECRET)) {
+    errors.push('MAGIC_LINK_SECRET production ortamında hardcoded dev değeri kullanılamaz');
+  }
+  if (parsed.CORS_ORIGINS === 'http://localhost:3000') {
+    errors.push('CORS_ORIGINS production ortamında localhost olamaz');
+  }
+  if (!parsed.RESEND_API_KEY) {
+    errors.push('RESEND_API_KEY production ortamında zorunludur');
+  }
+
+  if (errors.length > 0) {
+    throw new Error(
+      `Production ortam değişkeni hataları:\n${errors.map((e) => `  - ${e}`).join('\n')}`,
+    );
+  }
+}
+
+export const config = parsed;
 export type Config = z.infer<typeof envSchema>;

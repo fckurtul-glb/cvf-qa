@@ -38,6 +38,9 @@ export default function LoginPage() {
       }
 
       localStorage.setItem('token', data.data.accessToken);
+      if (data.data.refreshToken) {
+        localStorage.setItem('refreshToken', data.data.refreshToken);
+      }
       toast({ title: 'Giriş başarılı', description: 'Yönlendiriliyorsunuz...' });
       router.push('/dashboard');
     } catch {

@@ -1,9 +1,13 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import helmet from '@fastify/helmet';
 import fjwt from '@fastify/jwt';
 import multipart from '@fastify/multipart';
+import cookie from '@fastify/cookie';
 import { config } from './config/env';
 import { errorHandler } from './middleware/error-handler';
+import { globalRateLimit } from './middleware/rate-limiter';
+import { registerCsrf, csrfGuard } from './middleware/csrf';
 import { authRoutes } from './modules/auth/routes';
 import { userRoutes } from './modules/users/routes';
 import { surveyRoutes } from './modules/survey/routes';
@@ -11,6 +15,8 @@ import { campaignRoutes } from './modules/campaigns/routes';
 import { analyticsRoutes } from './modules/analytics/routes';
 import { reportsRoutes } from './modules/reports/routes';
 import { assessment360Routes } from './modules/assessment360/routes';
+import { organizationsRoutes, inviteRoutes } from './modules/organizations/routes';
+import { contactRoutes } from './modules/contact/routes';
 import { emailWorker } from './jobs/email-sender';
 
 const app = Fastify({
@@ -31,6 +37,23 @@ async function bootstrap() {
     credentials: true,
   });
 
+  await app.register(helmet, {
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", 'data:', 'blob:'],
+        connectSrc: ["'self'", ...config.CORS_ORIGINS.split(',')],
+        fontSrc: ["'self'"],
+        objectSrc: ["'none'"],
+        mediaSrc: ["'self'"],
+        frameSrc: ["'none'"],
+      },
+    },
+    crossOriginEmbedderPolicy: false, // needed for SPA API
+  });
+
   await app.register(fjwt, {
     secret: config.JWT_SECRET,
   });
@@ -39,11 +62,22 @@ async function bootstrap() {
     limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
   });
 
+  await app.register(cookie, {
+    secret: config.JWT_SECRET,
+  });
+
   // ── Error Handler ──
   app.setErrorHandler(errorHandler);
 
+  // ── Global Rate Limit ──
+  app.addHook('onRequest', globalRateLimit);
+
+  // ── CSRF Protection ──
+  registerCsrf(app);
+  app.addHook('preHandler', csrfGuard);
+
   // ── Health Check ──
-  app.get('/health', async () => ({
+  app.get('/health', { config: { skipCsrf: true } as any }, async () => ({
     status: 'ok',
     timestamp: new Date().toISOString(),
     version: '0.1.0',
@@ -57,6 +91,9 @@ async function bootstrap() {
   await app.register(analyticsRoutes, { prefix: '/analytics' });
   await app.register(reportsRoutes, { prefix: '/reports' });
   await app.register(assessment360Routes, { prefix: '/360' });
+  await app.register(organizationsRoutes, { prefix: '/organizations' });
+  await app.register(inviteRoutes, { prefix: '/invite' });
+  await app.register(contactRoutes, { prefix: '/contact' });
 
   // ── Email Worker ──
   app.log.info(`Email worker başlatıldı (concurrency: 5)`);

@@ -187,6 +187,13 @@ class NotificationService {
       where: { orgId: campaign.orgId, role: { in: ['ORG_ADMIN', 'SUPER_ADMIN'] }, isActive: true },
     });
 
+    // Yanıt oranını hesapla
+    const totalInvited = await prisma.surveyToken.count({ where: { campaignId } });
+    const completedCount = await prisma.surveyResponse.count({
+      where: { campaignId, status: 'COMPLETED' },
+    });
+    const responseRate = totalInvited > 0 ? Math.round((completedCount / totalInvited) * 100) : 0;
+
     for (const admin of admins) {
       await this.sendEmail({
         to: admin.id, // decrypt edilecek
@@ -195,9 +202,9 @@ class NotificationService {
         data: {
           campaignName: campaign.name,
           reportUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/reports`,
-          responseRate: 0, // TODO: hesapla
-          completedCount: 0,
-          totalCount: 0,
+          responseRate,
+          completedCount,
+          totalCount: totalInvited,
         },
       });
     }
