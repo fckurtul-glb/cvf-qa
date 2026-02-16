@@ -118,17 +118,17 @@ export function SurveyFlowController({
   // 1. HOŞ GELDİNİZ
   if (step === 'welcome') {
     return (
-      <div className="min-h-screen bg-navy flex items-center justify-center px-4">
+      <div className="min-h-screen bg-primary flex items-center justify-center px-4">
         <div className="max-w-lg w-full bg-white rounded-2xl p-8 text-center">
           {orgLogo && <img src={orgLogo} alt={orgName} className="h-16 mx-auto mb-4" />}
-          <h1 className="text-2xl font-display font-bold text-navy mb-2">{campaignName}</h1>
-          <p className="text-navy/50 mb-1">{orgName}</p>
-          <div className="flex items-center justify-center gap-6 my-6 text-sm text-navy/60">
+          <h1 className="text-2xl font-display font-bold text-foreground mb-2">{campaignName}</h1>
+          <p className="text-muted-foreground mb-1">{orgName}</p>
+          <div className="flex items-center justify-center gap-6 my-6 text-sm text-muted-foreground">
             <span>📋 {totalQuestions} soru</span>
             <span>⏱ ~{estimatedMinutes} dk</span>
             <span>🔒 Anonim</span>
           </div>
-          <p className="text-sm text-navy/40 mb-6">
+          <p className="text-sm text-muted-foreground mb-6">
             Yanıtlarınız şifreli olarak saklanır. Kimliğiniz kurumunuzla paylaşılmaz.
             Yarıda bırakırsanız kaldığınız yerden devam edebilirsiniz.
           </p>
@@ -146,10 +146,10 @@ export function SurveyFlowController({
   // 2. KVKK ONAY
   if (step === 'consent') {
     return (
-      <div className="min-h-screen bg-navy flex items-center justify-center px-4">
+      <div className="min-h-screen bg-primary flex items-center justify-center px-4">
         <div className="max-w-lg w-full bg-white rounded-2xl p-8">
-          <h2 className="text-xl font-bold text-navy mb-4">Kişisel Verilerin Korunması Aydınlatma Metni</h2>
-          <div className="h-64 overflow-y-auto border rounded-lg p-4 text-sm text-navy/70 mb-4 bg-slate-50">
+          <h2 className="text-xl font-bold text-foreground mb-4">Kişisel Verilerin Korunması Aydınlatma Metni</h2>
+          <div className="h-64 overflow-y-auto border rounded-lg p-4 text-sm text-foreground/70 mb-4 bg-slate-50">
             <p className="mb-3">
               <strong>Veri Sorumlusu:</strong> CVF-QA Ltd. Şti. / {orgName}
             </p>
@@ -186,7 +186,7 @@ export function SurveyFlowController({
               onChange={(e) => setConsentGiven(e.target.checked)}
               className="mt-1 w-5 h-5 rounded border-slate-300 text-accent focus:ring-accent"
             />
-            <span className="text-sm text-navy">
+            <span className="text-sm text-foreground">
               Yukarıdaki aydınlatma metnini okudum ve kişisel verilerimin belirtilen amaçlarla 
               işlenmesini kabul ediyorum.
             </span>
@@ -211,14 +211,14 @@ export function SurveyFlowController({
   // 3. DEMOGRAFİK (Minimal)
   if (step === 'demographics') {
     return (
-      <div className="min-h-screen bg-navy flex items-center justify-center px-4">
+      <div className="min-h-screen bg-primary flex items-center justify-center px-4">
         <div className="max-w-lg w-full bg-white rounded-2xl p-8">
-          <h2 className="text-xl font-bold text-navy mb-2">Demografik Bilgiler</h2>
-          <p className="text-sm text-navy/40 mb-6">Bu bilgiler birim bazlı karşılaştırma için kullanılır. İsim sorulmaz.</p>
+          <h2 className="text-xl font-bold text-foreground mb-2">Demografik Bilgiler</h2>
+          <p className="text-sm text-muted-foreground mb-6">Bu bilgiler birim bazlı karşılaştırma için kullanılır. İsim sorulmaz.</p>
           
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-navy mb-1">Kıdem Yılı</label>
+              <label className="block text-sm font-medium text-foreground mb-1">Kıdem Yılı</label>
               <select
                 value={demographics.seniorityRange}
                 onChange={(e) => setDemographics((d) => ({ ...d, seniorityRange: e.target.value }))}
@@ -233,7 +233,7 @@ export function SurveyFlowController({
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-navy mb-1">Yaş Aralığı <span className="text-navy/30">(opsiyonel)</span></label>
+              <label className="block text-sm font-medium text-foreground mb-1">Yaş Aralığı <span className="text-muted-foreground/70">(opsiyonel)</span></label>
               <select
                 value={demographics.ageRange}
                 onChange={(e) => setDemographics((d) => ({ ...d, ageRange: e.target.value }))}
@@ -270,17 +270,17 @@ export function SurveyFlowController({
   if (step === 'break') {
     const nextModule = modules[moduleIndex + 1];
     return (
-      <div className="min-h-screen bg-navy flex items-center justify-center px-4">
+      <div className="min-h-screen bg-primary flex items-center justify-center px-4">
         <div className="max-w-lg w-full bg-white rounded-2xl p-8 text-center">
           <div className="text-4xl mb-4">☕</div>
-          <h2 className="text-xl font-bold text-navy mb-2">{currentModule.name} tamamlandı!</h2>
-          <p className="text-navy/50 mb-6">
+          <h2 className="text-xl font-bold text-foreground mb-2">{currentModule.name} tamamlandı!</h2>
+          <p className="text-muted-foreground mb-6">
             İsterseniz kısa bir mola verin. Sıradaki modül: <strong>{nextModule?.name}</strong>
           </p>
           <div className="w-full bg-slate-100 rounded-full h-2 mb-6">
             <div className="bg-accent h-2 rounded-full transition-all" style={{ width: `${progress}%` }} />
           </div>
-          <p className="text-sm text-navy/40 mb-6">İlerleme: %{progress}</p>
+          <p className="text-sm text-muted-foreground mb-6">İlerleme: %{progress}</p>
           <button
             onClick={() => {
               setModuleIndex((i) => i + 1);
@@ -299,11 +299,11 @@ export function SurveyFlowController({
   // 5. TAMAMLAMA
   if (step === 'complete') {
     return (
-      <div className="min-h-screen bg-navy flex items-center justify-center px-4">
+      <div className="min-h-screen bg-primary flex items-center justify-center px-4">
         <div className="max-w-lg w-full bg-white rounded-2xl p-8 text-center">
           <div className="text-5xl mb-4">🎉</div>
-          <h2 className="text-2xl font-display font-bold text-navy mb-2">Teşekkürler!</h2>
-          <p className="text-navy/50 mb-6">
+          <h2 className="text-2xl font-display font-bold text-foreground mb-2">Teşekkürler!</h2>
+          <p className="text-muted-foreground mb-6">
             Tüm yanıtlarınız kaydedildi. Raporunuz hazır olduğunda bilgilendirileceksiniz.
           </p>
           <button
@@ -323,13 +323,13 @@ export function SurveyFlowController({
   if (!question || !currentModule) return null;
 
   return (
-    <div className="min-h-screen bg-cream">
+    <div className="min-h-screen bg-background">
       {/* Top Bar */}
       <div className="fixed top-0 inset-x-0 z-50 bg-white/95 backdrop-blur-md border-b shadow-sm">
         <div className="max-w-3xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-navy">{currentModule.name}</span>
-            <div className="flex items-center gap-2 text-xs text-navy/40">
+            <span className="text-sm font-medium text-foreground">{currentModule.name}</span>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
               {saving && <span className="text-amber-500">💾 Kaydediliyor...</span>}
               {lastSaved && !saving && (
                 <span className="text-green-500">✓ {lastSaved.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</span>
@@ -381,11 +381,11 @@ export function SurveyFlowController({
           <button
             onClick={goPrev}
             disabled={moduleIndex === 0 && questionIndex === 0}
-            className="text-sm text-navy/40 hover:text-navy transition disabled:opacity-30"
+            className="text-sm text-muted-foreground hover:text-foreground transition disabled:opacity-30"
           >
             ← Önceki
           </button>
-          <span className="text-xs text-navy/30">
+          <span className="text-xs text-muted-foreground/70">
             {questionIndex + 1} / {currentModule.questions.length}
           </span>
         </div>

@@ -23,10 +23,10 @@ interface IpsativeWidgetProps {
 const TOTAL = 100;
 
 const CULTURE_COLORS = {
-  A: { bg: 'bg-blue-50', border: 'border-blue-300', text: 'text-blue-700', fill: 'bg-blue-500' },
-  B: { bg: 'bg-amber-50', border: 'border-amber-300', text: 'text-amber-700', fill: 'bg-amber-500' },
-  C: { bg: 'bg-red-50', border: 'border-red-300', text: 'text-red-700', fill: 'bg-red-500' },
-  D: { bg: 'bg-slate-50', border: 'border-slate-300', text: 'text-slate-700', fill: 'bg-slate-500' },
+  A: { bg: 'bg-frosted/10', border: 'border-frosted/50', text: 'text-frosted', fill: 'bg-frosted' },
+  B: { bg: 'bg-accent/10', border: 'border-accent/50', text: 'text-accent', fill: 'bg-accent' },
+  C: { bg: 'bg-secondary/10', border: 'border-secondary/50', text: 'text-secondary', fill: 'bg-secondary' },
+  D: { bg: 'bg-primary/10', border: 'border-primary/50', text: 'text-primary', fill: 'bg-primary' },
 };
 
 export function IpsativeWidget({
@@ -73,7 +73,7 @@ export function IpsativeWidget({
       {/* Soru Başlığı */}
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-2">
-          <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-navy text-white text-sm font-bold">
+          <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary text-white text-sm font-bold font-display">
             {questionNumber}
           </span>
           <span className={cn(
@@ -83,8 +83,8 @@ export function IpsativeWidget({
             {perspective === 'current' ? 'MEVCUT DURUM' : 'TERCİH EDİLEN'}
           </span>
         </div>
-        <h3 className="text-lg font-semibold text-navy leading-snug">{questionTitle}</h3>
-        <p className="text-sm text-navy/50 mt-1">
+        <h3 className="text-lg font-semibold text-foreground leading-snug">{questionTitle}</h3>
+        <p className="text-sm text-muted-foreground mt-1">
           Toplam 100 puanı aşağıdaki 4 seçenek arasında dağıtın.
         </p>
       </div>
@@ -116,7 +116,7 @@ export function IpsativeWidget({
                   {option.key}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-navy leading-relaxed">{option.text}</p>
+                  <p className="text-sm text-foreground leading-relaxed">{option.text}</p>
                   <p className={cn('text-xs mt-1 opacity-60', c.text)}>{option.cultureLabel}</p>
                 </div>
               </div>
@@ -127,7 +127,7 @@ export function IpsativeWidget({
                 <button
                   type="button"
                   onClick={() => handleIncrement(option.key, -5)}
-                  className="md:hidden w-8 h-8 rounded-lg bg-white border border-slate-200 text-navy font-bold text-sm hover:bg-slate-50 active:scale-95 transition"
+                  className="md:hidden w-11 h-11 rounded-lg bg-white border border-slate-200 text-foreground font-bold text-sm hover:bg-slate-50 active:scale-95 transition"
                   aria-label={`${option.key} seçeneğini 5 azalt`}
                 >
                   −
@@ -141,14 +141,14 @@ export function IpsativeWidget({
                   step={5}
                   value={pct}
                   onChange={(e) => handleChange(option.key, Number(e.target.value))}
-                  className="hidden md:block flex-1 h-2 rounded-lg appearance-none cursor-pointer accent-navy"
+                  className="hidden md:block flex-1 h-2 rounded-lg appearance-none cursor-pointer accent-primary"
                   aria-label={`${option.key} puanı`}
                 />
 
                 {/* Progress bar (mobil) */}
                 <div className="md:hidden flex-1 h-3 bg-white rounded-full overflow-hidden border">
                   <div
-                    className={cn('h-full rounded-full transition-all duration-200', c.fill)}
+                    className={cn('h-full rounded-full transition-all duration-300', c.fill)}
                     style={{ width: `${pct}%` }}
                   />
                 </div>
@@ -156,7 +156,7 @@ export function IpsativeWidget({
                 <button
                   type="button"
                   onClick={() => handleIncrement(option.key, 5)}
-                  className="md:hidden w-8 h-8 rounded-lg bg-white border border-slate-200 text-navy font-bold text-sm hover:bg-slate-50 active:scale-95 transition"
+                  className="md:hidden w-11 h-11 rounded-lg bg-white border border-slate-200 text-foreground font-bold text-sm hover:bg-slate-50 active:scale-95 transition"
                   aria-label={`${option.key} seçeneğini 5 artır`}
                 >
                   +
@@ -191,7 +191,7 @@ export function IpsativeWidget({
           className={cn(
             'px-8 py-3 rounded-xl font-semibold text-white transition-all',
             isValid
-              ? 'bg-gradient-to-r from-accent to-accent-light hover:shadow-lg hover:shadow-accent/20 active:scale-[0.98]'
+              ? 'bg-gradient-to-r from-accent to-accent/80 hover:shadow-lg hover:shadow-accent/20 active:scale-[0.98]'
               : 'bg-slate-300 cursor-not-allowed'
           )}
         >

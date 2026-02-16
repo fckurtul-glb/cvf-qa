@@ -57,14 +57,14 @@ export function LikertWidget({
       {/* Soru Başlığı */}
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-2">
-          <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-navy text-white text-sm font-bold">
+          <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary text-white text-sm font-bold">
             {questionNumber}
           </span>
-          <span className="text-xs font-medium text-navy/40 uppercase tracking-wider">
+          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
             {dimension}
           </span>
         </div>
-        <h3 className="text-lg font-semibold text-navy leading-snug">{questionText}</h3>
+        <h3 className="text-lg font-semibold text-foreground leading-snug">{questionText}</h3>
       </div>
 
       {/* Desktop: Yatay butonlar */}
@@ -84,7 +84,7 @@ export function LikertWidget({
             <span
               className={cn(
                 'inline-flex items-center justify-center w-10 h-10 rounded-full text-lg font-bold transition-colors',
-                selected === value ? 'bg-accent text-white' : 'bg-slate-100 text-navy/60'
+                selected === value ? 'bg-accent text-white' : 'bg-slate-100 text-muted-foreground'
               )}
             >
               {value}
@@ -93,7 +93,7 @@ export function LikertWidget({
               <span
                 className={cn(
                   'text-xs text-center leading-tight transition-colors',
-                  selected === value ? 'text-accent font-medium' : 'text-navy/40'
+                  selected === value ? 'text-accent font-medium' : 'text-muted-foreground'
                 )}
               >
                 {labels[value]}
@@ -111,7 +111,7 @@ export function LikertWidget({
             type="button"
             onClick={() => handleSelect(value)}
             className={cn(
-              'w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all',
+              'w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all duration-200',
               selected === value
                 ? 'border-accent bg-accent/10'
                 : 'border-slate-200 bg-white active:bg-accent/5'
@@ -120,7 +120,7 @@ export function LikertWidget({
             <span
               className={cn(
                 'inline-flex items-center justify-center w-10 h-10 rounded-full text-lg font-bold shrink-0',
-                selected === value ? 'bg-accent text-white' : 'bg-slate-100 text-navy/60'
+                selected === value ? 'bg-accent text-white' : 'bg-slate-100 text-muted-foreground'
               )}
             >
               {value}
@@ -128,7 +128,7 @@ export function LikertWidget({
             <span
               className={cn(
                 'text-sm text-left',
-                selected === value ? 'text-accent font-medium' : 'text-navy/60'
+                selected === value ? 'text-accent font-medium' : 'text-muted-foreground'
               )}
             >
               {labels[value] || `Puan ${value}`}
