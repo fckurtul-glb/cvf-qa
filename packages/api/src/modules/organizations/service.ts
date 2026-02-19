@@ -933,7 +933,6 @@ class OrganizationsService {
 
     return { success: true, data: { inviteId, message: 'Davet iptal edildi' } };
   }
-}
 
   // ════════════════════════════════════
   // ORG_ADMIN SELF-SERVICE

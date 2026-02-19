@@ -410,8 +410,6 @@ export async function organizationsRoutes(app: FastifyInstance) {
 // ORG_ADMIN manages their own org. SUPER_ADMIN can also call these.
 // ════════════════════════════════════════════════════
 export async function myOrgRoutes(app: FastifyInstance) {
-  const { requireOrgMember } = await import('../../middleware/auth');
-
   // GET /my-organization — Kendi kurum bilgilerini getir
   app.get('/', { preHandler: [requireRole('ORG_ADMIN', 'SUPER_ADMIN')] }, async (request, reply) => {
     const user = (request as any).user as { sub: string; org: string; role: string };
