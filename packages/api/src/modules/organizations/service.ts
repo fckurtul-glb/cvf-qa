@@ -159,10 +159,13 @@ class OrganizationsService {
     };
   }
 
-  async deactivate(id: string) {
+  async deactivate(id: string, performedBy?: string) {
     const org = await prisma.organization.findUnique({ where: { id } });
     if (!org) {
       return { success: false, error: 'Kurum bulunamadı' };
+    }
+    if (!org.isActive) {
+      return { success: false, error: 'Kurum zaten pasif durumda' };
     }
 
     await prisma.organization.update({
@@ -170,7 +173,44 @@ class OrganizationsService {
       data: { isActive: false },
     });
 
+    await prisma.auditLog.create({
+      data: {
+        orgId: id,
+        userId: performedBy,
+        action: 'org.deactivate',
+        resourceType: 'organization',
+        resourceId: id,
+      },
+    });
+
     return { success: true, data: { message: 'Kurum pasifleştirildi' } };
+  }
+
+  async reactivate(id: string, performedBy?: string) {
+    const org = await prisma.organization.findUnique({ where: { id } });
+    if (!org) {
+      return { success: false, error: 'Kurum bulunamadı' };
+    }
+    if (org.isActive) {
+      return { success: false, error: 'Kurum zaten aktif durumda' };
+    }
+
+    await prisma.organization.update({
+      where: { id },
+      data: { isActive: true },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        orgId: id,
+        userId: performedBy,
+        action: 'org.reactivate',
+        resourceType: 'organization',
+        resourceId: id,
+      },
+    });
+
+    return { success: true, data: { message: 'Kurum reaktifleştirildi' } };
   }
 
   async createInviteToken(orgId: string, email: string, role: UserRole, createdById: string) {
@@ -892,6 +932,131 @@ class OrganizationsService {
     });
 
     return { success: true, data: { inviteId, message: 'Davet iptal edildi' } };
+  }
+}
+
+  // ════════════════════════════════════
+  // ORG_ADMIN SELF-SERVICE
+  // Returns data scoped to the requesting user's own org
+  // ════════════════════════════════════
+
+  async getMyOrg(orgId: string) {
+    const org = await prisma.organization.findUnique({
+      where: { id: orgId },
+      include: {
+        _count: { select: { users: true, campaigns: true, departments: true } },
+      },
+    });
+    if (!org) return { success: false, error: 'Kurum bulunamadı' };
+
+    return {
+      success: true,
+      data: {
+        id: org.id,
+        name: org.name,
+        domain: org.domain,
+        packageTier: org.packageTier,
+        isActive: org.isActive,
+        settings: org.settings,
+        userCount: org._count.users,
+        campaignCount: org._count.campaigns,
+        departmentCount: org._count.departments,
+        createdAt: org.createdAt,
+        updatedAt: org.updatedAt,
+      },
+    };
+  }
+
+  async getMyOrgUsers(orgId: string, page: number, limit: number, filters: { role?: string; isActive?: boolean }) {
+    return this.listOrgUsers(orgId, page, limit, filters);
+  }
+
+  async toggleMyOrgUser(orgId: string, userId: string, isActive: boolean, performedBy?: string) {
+    // ORG_ADMIN cannot toggle SUPER_ADMIN users
+    const targetUser = await prisma.user.findFirst({ where: { id: userId, orgId } });
+    if (!targetUser) return { success: false, error: 'Kullanıcı bulunamadı' };
+    if (targetUser.role === 'SUPER_ADMIN') return { success: false, error: 'Sistem yöneticisi hesabı değiştirilemez' };
+
+    return this.toggleUserActive(orgId, userId, isActive, performedBy);
+  }
+
+  async reassignMyOrgUserRole(orgId: string, userId: string, newRole: string, performedBy?: string) {
+    // ORG_ADMIN can only assign UNIT_ADMIN, PARTICIPANT, VIEWER roles (not another ORG_ADMIN or SUPER_ADMIN)
+    const user = await prisma.user.findFirst({ where: { id: userId, orgId } });
+    if (!user) return { success: false, error: 'Kullanıcı bulunamadı' };
+    if (user.role === 'SUPER_ADMIN') return { success: false, error: 'Sistem yöneticisi rolü değiştirilemez' };
+
+    const allowedRoles = ['UNIT_ADMIN', 'PARTICIPANT', 'VIEWER'];
+    if (!allowedRoles.includes(newRole)) return { success: false, error: 'Geçersiz rol. Kurum yöneticisi UNIT_ADMIN, PARTICIPANT veya VIEWER rolü atayabilir.' };
+
+    return this.reassignUserRole(orgId, userId, newRole, performedBy);
+  }
+
+  async bulkToggleMyOrgUsers(orgId: string, userIds: string[], isActive: boolean, performedBy?: string) {
+    // ORG_ADMIN cannot bulk-toggle SUPER_ADMIN users
+    const superAdmins = await prisma.user.findMany({
+      where: { id: { in: userIds }, orgId, role: 'SUPER_ADMIN' },
+    });
+    if (superAdmins.length > 0) return { success: false, error: 'Sistem yöneticisi hesapları toplu işlemlere dahil edilemez' };
+
+    return this.bulkToggleUsers(orgId, userIds, isActive, performedBy);
+  }
+
+  async listMyOrgDepartments(orgId: string) {
+    return this.listDepartments(orgId);
+  }
+
+  async createMyOrgDepartment(orgId: string, name: string, parentDepartmentId?: string, performedBy?: string) {
+    return this.createDepartment(orgId, name, parentDepartmentId, performedBy);
+  }
+
+  async updateMyOrgDepartment(orgId: string, departmentId: string, data: { name?: string; parentDepartmentId?: string | null }, performedBy?: string) {
+    return this.updateDepartment(orgId, departmentId, data, performedBy);
+  }
+
+  async deleteMyOrgDepartment(orgId: string, departmentId: string, performedBy?: string) {
+    return this.deleteDepartment(orgId, departmentId, performedBy);
+  }
+
+  async createMyOrgInvite(orgId: string, email: string, role: UserRole, createdById: string) {
+    // ORG_ADMIN can only invite UNIT_ADMIN or lower (not another ORG_ADMIN)
+    const allowedInviteRoles: UserRole[] = ['UNIT_ADMIN' as UserRole];
+    if (!allowedInviteRoles.includes(role)) {
+      return { success: false, error: 'Kurum yöneticisi sadece Birim Yöneticisi davet edebilir' };
+    }
+    return this.createInviteToken(orgId, email, role, createdById);
+  }
+
+  async getMyOrgPendingInvites(orgId: string) {
+    const invites = await prisma.orgInviteToken.findMany({
+      where: { orgId, usedAt: null },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+
+    return {
+      success: true,
+      data: {
+        invites: invites.map((t) => ({
+          id: t.id,
+          email: t.email,
+          role: t.role,
+          expiresAt: t.expiresAt,
+          createdAt: t.createdAt,
+          isExpired: t.expiresAt < new Date(),
+        })),
+      },
+    };
+  }
+
+  async revokeMyOrgInvite(orgId: string, inviteId: string, performedBy?: string) {
+    const invite = await prisma.orgInviteToken.findFirst({ where: { id: inviteId, orgId } });
+    if (!invite) return { success: false, error: 'Davet bulunamadı' };
+    return this.revokeInvite(inviteId, performedBy);
+  }
+
+  async getMyOrgAuditLogs(orgId: string, page: number, limit: number, filters: { action?: string; resourceType?: string }) {
+    return this.getAuditLogs(orgId, page, limit, filters);
   }
 }
 

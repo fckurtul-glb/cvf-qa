@@ -9,8 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   ArrowLeft, Mail, UserPlus, XCircle, Clock, ShieldCheck,
-  Settings2, MailCheck, Users, BarChart3, Pause, Trash2, RotateCcw, Save,
-  Upload, ImageIcon, FileText, CheckSquare,
+  Settings2, Users, BarChart3, Pause, Trash2, RotateCcw, Save,
+  Upload, ImageIcon, FileText, CheckSquare, Pencil, CheckCircle2,
 } from 'lucide-react';
 
 const API = 'http://localhost:3001';
@@ -208,6 +208,7 @@ export default function OrganizationDetailPage() {
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteResult, setInviteResult] = useState<{ success: boolean; message: string; url?: string } | null>(null);
   const [deactivating, setDeactivating] = useState(false);
+  const [reactivating, setReactivating] = useState(false);
 
   const fetchOrg = useCallback(() => {
     const token = getToken();
@@ -267,6 +268,23 @@ export default function OrganizationDetailPage() {
     setDeactivating(false);
   }
 
+  async function handleReactivate() {
+    if (!confirm('Bu kurumu yeniden aktifleştirmek istediğinize emin misiniz?')) return;
+    setReactivating(true);
+
+    try {
+      const res = await fetch(`${API}/organizations/${id}/reactivate`, {
+        method: 'PATCH',
+        headers: authHeaders(),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setOrg((prev) => prev ? { ...prev, isActive: true } : prev);
+      }
+    } catch { /* ignore */ }
+    setReactivating(false);
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -321,8 +339,11 @@ export default function OrganizationDetailPage() {
             inviteLoading={inviteLoading}
             inviteResult={inviteResult}
             deactivating={deactivating}
+            reactivating={reactivating}
             onInvite={handleInvite}
             onDeactivate={handleDeactivate}
+            onReactivate={handleReactivate}
+            onOrgUpdated={() => fetchOrg()}
             onLogoUploaded={() => fetchOrg()}
             onRevokeInvite={async (inviteId: string) => {
               if (!confirm('Bu daveti iptal etmek istediğinize emin misiniz?')) return;
@@ -378,7 +399,8 @@ export default function OrganizationDetailPage() {
 
 function GeneralTab({
   org, tier, inviteEmail, setInviteEmail, inviteRole, setInviteRole,
-  inviteLoading, inviteResult, deactivating, onInvite, onDeactivate, onRevokeInvite, onLogoUploaded,
+  inviteLoading, inviteResult, deactivating, reactivating, onInvite, onDeactivate, onReactivate,
+  onRevokeInvite, onLogoUploaded, onOrgUpdated,
 }: {
   org: OrgDetail;
   tier: { label: string; className: string };
@@ -389,13 +411,46 @@ function GeneralTab({
   inviteLoading: boolean;
   inviteResult: { success: boolean; message: string; url?: string } | null;
   deactivating: boolean;
+  reactivating: boolean;
   onInvite: (e: React.FormEvent) => void;
   onDeactivate: () => void;
+  onReactivate: () => void;
   onRevokeInvite: (inviteId: string) => void;
   onLogoUploaded: () => void;
+  onOrgUpdated: () => void;
 }) {
   const [logoUploading, setLogoUploading] = useState(false);
   const [logoMsg, setLogoMsg] = useState<{ success: boolean; message: string } | null>(null);
+  const [editMode, setEditMode] = useState(false);
+  const [editName, setEditName] = useState(org.name);
+  const [editDomain, setEditDomain] = useState(org.domain);
+  const [editPackageTier, setEditPackageTier] = useState(org.packageTier);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editMsg, setEditMsg] = useState<{ success: boolean; message: string } | null>(null);
+
+  async function handleEditSave(e: React.FormEvent) {
+    e.preventDefault();
+    setEditSaving(true);
+    setEditMsg(null);
+    try {
+      const res = await fetch(`${API}/organizations/${org.id}`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify({ name: editName, domain: editDomain, packageTier: editPackageTier }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setEditMsg({ success: true, message: 'Kurum bilgileri güncellendi' });
+        setEditMode(false);
+        onOrgUpdated();
+      } else {
+        setEditMsg({ success: false, message: json.error?.message || 'Güncelleme başarısız' });
+      }
+    } catch {
+      setEditMsg({ success: false, message: 'Sunucu hatası' });
+    }
+    setEditSaving(false);
+  }
 
   async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -496,34 +551,96 @@ function GeneralTab({
 
       {/* Kurum Bilgileri */}
       <Card>
-        <CardHeader><CardTitle>Kurum Bilgileri</CardTitle></CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Domain</p>
-              <p className="font-medium">{org.domain}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Paket</p>
-              <Badge variant="outline" className={tier.className}>{tier.label}</Badge>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Toplam Kullanıcı</p>
-              <p className="font-medium">{org.userCount}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Kampanya Sayısı</p>
-              <p className="font-medium">{org.campaignCount}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Oluşturulma</p>
-              <p className="font-medium">{new Date(org.createdAt).toLocaleDateString('tr-TR')}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Son Güncelleme</p>
-              <p className="font-medium">{new Date(org.updatedAt).toLocaleDateString('tr-TR')}</p>
-            </div>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Kurum Bilgileri</CardTitle>
+            {!editMode && (
+              <Button variant="outline" size="sm" onClick={() => { setEditMode(true); setEditName(org.name); setEditDomain(org.domain); setEditPackageTier(org.packageTier); setEditMsg(null); }}>
+                <Pencil className="w-4 h-4 mr-1" />
+                Düzenle
+              </Button>
+            )}
           </div>
+        </CardHeader>
+        <CardContent>
+          {editMsg && (
+            <div className={`mb-4 text-sm rounded-lg px-4 py-2 ${editMsg.success ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
+              {editMsg.message}
+            </div>
+          )}
+          {editMode ? (
+            <form onSubmit={handleEditSave} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs text-muted-foreground uppercase tracking-wider mb-1 block">Kurum Adı *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground uppercase tracking-wider mb-1 block">Domain *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editDomain}
+                    onChange={(e) => setEditDomain(e.target.value)}
+                    placeholder="örn. universite.edu.tr"
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground uppercase tracking-wider mb-1 block">Paket Tier</label>
+                  <select
+                    value={editPackageTier}
+                    onChange={(e) => setEditPackageTier(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm"
+                  >
+                    <option value="STARTER">Starter</option>
+                    <option value="PROFESSIONAL">Professional</option>
+                    <option value="ENTERPRISE">Enterprise</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button type="submit" size="sm" disabled={editSaving}>
+                  <Save className="w-4 h-4 mr-1" />
+                  {editSaving ? 'Kaydediliyor...' : 'Kaydet'}
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => { setEditMode(false); setEditMsg(null); }}>İptal</Button>
+              </div>
+            </form>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Domain</p>
+                <p className="font-medium">{org.domain}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Paket</p>
+                <Badge variant="outline" className={tier.className}>{tier.label}</Badge>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Toplam Kullanıcı</p>
+                <p className="font-medium">{org.userCount}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Kampanya Sayısı</p>
+                <p className="font-medium">{org.campaignCount}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Oluşturulma</p>
+                <p className="font-medium">{new Date(org.createdAt).toLocaleDateString('tr-TR')}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Son Güncelleme</p>
+                <p className="font-medium">{new Date(org.updatedAt).toLocaleDateString('tr-TR')}</p>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -679,25 +796,41 @@ function GeneralTab({
         </Card>
       )}
 
-      {/* Tehlikeli İşlemler */}
-      {org.isActive && (
-        <Card className="border-red-200">
-          <CardHeader>
-            <CardTitle className="text-red-600 flex items-center gap-2">
-              <XCircle className="w-5 h-5" />
-              Tehlikeli İşlemler
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
-              Kurumu pasifleştirdiğinizde, bu kuruma ait kullanıcılar giriş yapamaz ve yeni kampanya oluşturulamaz.
-            </p>
-            <Button variant="destructive" onClick={onDeactivate} disabled={deactivating}>
-              {deactivating ? 'Pasifleştiriliyor...' : 'Kurumu Pasifleştir'}
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+      {/* Durum Yönetimi */}
+      <Card className={org.isActive ? 'border-red-200' : 'border-emerald-200'}>
+        <CardHeader>
+          <CardTitle className={`flex items-center gap-2 ${org.isActive ? 'text-red-600' : 'text-emerald-600'}`}>
+            {org.isActive ? <XCircle className="w-5 h-5" /> : <CheckCircle2 className="w-5 h-5" />}
+            {org.isActive ? 'Tehlikeli İşlemler' : 'Kurum Reaktifleştirme'}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {org.isActive ? (
+            <>
+              <p className="text-sm text-muted-foreground mb-4">
+                Kurumu pasifleştirdiğinizde, bu kuruma ait kullanıcılar giriş yapamaz ve yeni kampanya oluşturulamaz.
+              </p>
+              <Button variant="destructive" onClick={onDeactivate} disabled={deactivating}>
+                {deactivating ? 'Pasifleştiriliyor...' : 'Kurumu Pasifleştir'}
+              </Button>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-muted-foreground mb-4">
+                Bu kurum pasif durumda. Reaktifleştirerek kullanıcıların giriş yapmasına ve kampanya oluşturulmasına izin verebilirsiniz.
+              </p>
+              <Button
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                onClick={onReactivate}
+                disabled={reactivating}
+              >
+                <CheckCircle2 className="w-4 h-4 mr-2" />
+                {reactivating ? 'Reaktifleştiriliyor...' : 'Kurumu Reaktifleştir'}
+              </Button>
+            </>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

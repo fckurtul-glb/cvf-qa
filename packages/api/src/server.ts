@@ -15,7 +15,7 @@ import { campaignRoutes } from './modules/campaigns/routes';
 import { analyticsRoutes } from './modules/analytics/routes';
 import { reportsRoutes } from './modules/reports/routes';
 import { assessment360Routes } from './modules/assessment360/routes';
-import { organizationsRoutes, inviteRoutes } from './modules/organizations/routes';
+import { organizationsRoutes, myOrgRoutes, inviteRoutes } from './modules/organizations/routes';
 import { contactRoutes } from './modules/contact/routes';
 import { emailWorker } from './jobs/email-sender';
 
@@ -92,6 +92,7 @@ async function bootstrap() {
   await app.register(reportsRoutes, { prefix: '/reports' });
   await app.register(assessment360Routes, { prefix: '/360' });
   await app.register(organizationsRoutes, { prefix: '/organizations' });
+  await app.register(myOrgRoutes, { prefix: '/my-organization' });
   await app.register(inviteRoutes, { prefix: '/invite' });
   await app.register(contactRoutes, { prefix: '/contact' });
 

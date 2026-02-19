@@ -56,9 +56,27 @@ export async function organizationsRoutes(app: FastifyInstance) {
   // PATCH /organizations/:id/deactivate — Pasifleştir (SUPER_ADMIN)
   app.patch('/:id/deactivate', { preHandler: [requireRole('SUPER_ADMIN')] }, async (request, reply) => {
     const { id } = request.params as { id: string };
-    const result = await organizationsService.deactivate(id);
+    const { sub } = (request as any).user as { sub: string };
+    const result = await organizationsService.deactivate(id, sub);
     if (!result.success) {
-      return reply.status(404).send({ success: false, error: { code: 'NOT_FOUND', message: result.error } });
+      return reply.status(result.error === 'Kurum bulunamadı' ? 404 : 400).send({
+        success: false,
+        error: { code: result.error === 'Kurum bulunamadı' ? 'NOT_FOUND' : 'BAD_REQUEST', message: result.error },
+      });
+    }
+    reply.send(result);
+  });
+
+  // PATCH /organizations/:id/reactivate — Reaktifleştir (SUPER_ADMIN)
+  app.patch('/:id/reactivate', { preHandler: [requireRole('SUPER_ADMIN')] }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { sub } = (request as any).user as { sub: string };
+    const result = await organizationsService.reactivate(id, sub);
+    if (!result.success) {
+      return reply.status(result.error === 'Kurum bulunamadı' ? 404 : 400).send({
+        success: false,
+        error: { code: result.error === 'Kurum bulunamadı' ? 'NOT_FOUND' : 'BAD_REQUEST', message: result.error },
+      });
     }
     reply.send(result);
   });
@@ -383,6 +401,187 @@ export async function organizationsRoutes(app: FastifyInstance) {
         error: { code: result.error === 'Davet bulunamadı' ? 'NOT_FOUND' : 'BAD_REQUEST', message: result.error },
       });
     }
+    reply.send(result);
+  });
+}
+
+// ════════════════════════════════════════════════════
+// ORG_ADMIN SELF-SERVICE ROUTES — /my-organization
+// ORG_ADMIN manages their own org. SUPER_ADMIN can also call these.
+// ════════════════════════════════════════════════════
+export async function myOrgRoutes(app: FastifyInstance) {
+  const { requireOrgMember } = await import('../../middleware/auth');
+
+  // GET /my-organization — Kendi kurum bilgilerini getir
+  app.get('/', { preHandler: [requireRole('ORG_ADMIN', 'SUPER_ADMIN')] }, async (request, reply) => {
+    const user = (request as any).user as { sub: string; org: string; role: string };
+    const orgId = user.org;
+    const result = await organizationsService.getMyOrg(orgId);
+    if (!result.success) {
+      return reply.status(404).send({ success: false, error: { code: 'NOT_FOUND', message: result.error } });
+    }
+    reply.send(result);
+  });
+
+  // ── Kullanıcı Yönetimi ──
+
+  // GET /my-organization/users
+  app.get('/users', { preHandler: [requireRole('ORG_ADMIN', 'SUPER_ADMIN')] }, async (request, reply) => {
+    const user = (request as any).user as { sub: string; org: string; role: string };
+    const query = orgUsersQuerySchema.parse(request.query);
+    const result = await organizationsService.getMyOrgUsers(user.org, query.page, query.limit, {
+      role: query.role,
+      isActive: query.isActive,
+    });
+    reply.send(result);
+  });
+
+  // PATCH /my-organization/users/:userId/toggle
+  app.patch('/users/:userId/toggle', { preHandler: [requireRole('ORG_ADMIN', 'SUPER_ADMIN')] }, async (request, reply) => {
+    const user = (request as any).user as { sub: string; org: string; role: string };
+    const { userId } = request.params as { userId: string };
+    const { isActive } = request.body as { isActive: boolean };
+    const result = await organizationsService.toggleMyOrgUser(user.org, userId, isActive, user.sub);
+    if (!result.success) {
+      return reply.status(400).send({ success: false, error: { code: 'BAD_REQUEST', message: result.error } });
+    }
+    reply.send(result);
+  });
+
+  // PATCH /my-organization/users/:userId/role
+  app.patch('/users/:userId/role', { preHandler: [requireRole('ORG_ADMIN', 'SUPER_ADMIN')] }, async (request, reply) => {
+    const user = (request as any).user as { sub: string; org: string; role: string };
+    const { userId } = request.params as { userId: string };
+    const { role: newRole } = request.body as { role: string };
+    const result = await organizationsService.reassignMyOrgUserRole(user.org, userId, newRole, user.sub);
+    if (!result.success) {
+      return reply.status(400).send({ success: false, error: { code: 'BAD_REQUEST', message: result.error } });
+    }
+    reply.send(result);
+  });
+
+  // POST /my-organization/users/bulk
+  app.post('/users/bulk', { preHandler: [requireRole('ORG_ADMIN', 'SUPER_ADMIN')] }, async (request, reply) => {
+    const user = (request as any).user as { sub: string; org: string; role: string };
+    const { action, userIds } = request.body as { action: 'activate' | 'deactivate'; userIds: string[] };
+
+    if (!Array.isArray(userIds) || userIds.length === 0) {
+      return reply.status(400).send({ success: false, error: { code: 'BAD_REQUEST', message: 'userIds boş olamaz' } });
+    }
+    if (!['activate', 'deactivate'].includes(action)) {
+      return reply.status(400).send({ success: false, error: { code: 'BAD_REQUEST', message: 'Geçersiz işlem. Kurum yöneticisi sadece aktifleştirme/deaktifleştirme yapabilir' } });
+    }
+
+    const result = await organizationsService.bulkToggleMyOrgUsers(user.org, userIds, action === 'activate', user.sub);
+    if (!result.success) {
+      return reply.status(400).send({ success: false, error: { code: 'BAD_REQUEST', message: result.error } });
+    }
+    reply.send(result);
+  });
+
+  // ── Birim Yönetimi ──
+
+  // GET /my-organization/departments
+  app.get('/departments', { preHandler: [requireRole('ORG_ADMIN', 'UNIT_ADMIN', 'SUPER_ADMIN')] }, async (request, reply) => {
+    const user = (request as any).user as { sub: string; org: string; role: string };
+    const result = await organizationsService.listMyOrgDepartments(user.org);
+    reply.send(result);
+  });
+
+  // POST /my-organization/departments
+  app.post('/departments', { preHandler: [requireRole('ORG_ADMIN', 'SUPER_ADMIN')] }, async (request, reply) => {
+    const user = (request as any).user as { sub: string; org: string; role: string };
+    const { name, parentDepartmentId } = request.body as { name: string; parentDepartmentId?: string };
+    if (!name || name.trim().length < 1) {
+      return reply.status(400).send({ success: false, error: { code: 'BAD_REQUEST', message: 'Birim adı zorunludur' } });
+    }
+    const result = await organizationsService.createMyOrgDepartment(user.org, name.trim(), parentDepartmentId, user.sub);
+    if (!result.success) {
+      return reply.status(400).send({ success: false, error: { code: 'BAD_REQUEST', message: result.error } });
+    }
+    reply.status(201).send(result);
+  });
+
+  // PUT /my-organization/departments/:deptId
+  app.put('/departments/:deptId', { preHandler: [requireRole('ORG_ADMIN', 'SUPER_ADMIN')] }, async (request, reply) => {
+    const user = (request as any).user as { sub: string; org: string; role: string };
+    const { deptId } = request.params as { deptId: string };
+    const data = request.body as { name?: string; parentDepartmentId?: string | null };
+    const result = await organizationsService.updateMyOrgDepartment(user.org, deptId, data, user.sub);
+    if (!result.success) {
+      return reply.status(400).send({ success: false, error: { code: 'BAD_REQUEST', message: result.error } });
+    }
+    reply.send(result);
+  });
+
+  // DELETE /my-organization/departments/:deptId
+  app.delete('/departments/:deptId', { preHandler: [requireRole('ORG_ADMIN', 'SUPER_ADMIN')] }, async (request, reply) => {
+    const user = (request as any).user as { sub: string; org: string; role: string };
+    const { deptId } = request.params as { deptId: string };
+    const result = await organizationsService.deleteMyOrgDepartment(user.org, deptId, user.sub);
+    if (!result.success) {
+      return reply.status(400).send({ success: false, error: { code: 'BAD_REQUEST', message: result.error } });
+    }
+    reply.send(result);
+  });
+
+  // ── Davet Yönetimi ──
+
+  // GET /my-organization/invites — Bekleyen davetler
+  app.get('/invites', { preHandler: [requireRole('ORG_ADMIN', 'SUPER_ADMIN')] }, async (request, reply) => {
+    const user = (request as any).user as { sub: string; org: string; role: string };
+    const result = await organizationsService.getMyOrgPendingInvites(user.org);
+    reply.send(result);
+  });
+
+  // POST /my-organization/invites — Davet gönder (sadece UNIT_ADMIN daveti)
+  app.post('/invites', { preHandler: [requireRole('ORG_ADMIN', 'SUPER_ADMIN'), validate(createInviteSchema)] }, async (request, reply) => {
+    const user = (request as any).user as { sub: string; org: string; role: string };
+    const { email, role } = request.body as { email: string; role: 'ORG_ADMIN' | 'UNIT_ADMIN' };
+
+    const result = await organizationsService.createMyOrgInvite(user.org, email, role as any, user.sub);
+    if (!result.success) {
+      return reply.status(400).send({ success: false, error: { code: 'BAD_REQUEST', message: result.error } });
+    }
+
+    const registerUrl = `${config.CORS_ORIGINS.split(',')[0]}/auth/register?token=${result.data!.token}`;
+    await queueOrgInvitation(email, result.data!.orgName, registerUrl, result.data!.role, result.data!.expiresAt, user.org);
+
+    reply.status(201).send({
+      success: true,
+      data: {
+        id: result.data!.id,
+        email: result.data!.email,
+        role: result.data!.role,
+        expiresAt: result.data!.expiresAt,
+        registerUrl,
+      },
+    });
+  });
+
+  // DELETE /my-organization/invites/:inviteId — Davet iptal
+  app.delete('/invites/:inviteId', { preHandler: [requireRole('ORG_ADMIN', 'SUPER_ADMIN')] }, async (request, reply) => {
+    const user = (request as any).user as { sub: string; org: string; role: string };
+    const { inviteId } = request.params as { inviteId: string };
+    const result = await organizationsService.revokeMyOrgInvite(user.org, inviteId, user.sub);
+    if (!result.success) {
+      return reply.status(400).send({ success: false, error: { code: 'BAD_REQUEST', message: result.error } });
+    }
+    reply.send(result);
+  });
+
+  // ── Denetim Kayıtları ──
+
+  // GET /my-organization/audit-logs
+  app.get('/audit-logs', { preHandler: [requireRole('ORG_ADMIN', 'SUPER_ADMIN')] }, async (request, reply) => {
+    const user = (request as any).user as { sub: string; org: string; role: string };
+    const { page = '1', limit = '20', action, resourceType } = request.query as {
+      page?: string; limit?: string; action?: string; resourceType?: string;
+    };
+    const result = await organizationsService.getMyOrgAuditLogs(user.org, parseInt(page), parseInt(limit), {
+      action,
+      resourceType,
+    });
     reply.send(result);
   });
 }

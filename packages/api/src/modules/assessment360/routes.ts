@@ -4,7 +4,7 @@ import { assessment360Service } from './service';
 
 export async function assessment360Routes(app: FastifyInstance) {
   // POST /360 — Yeni 360° konfigürasyonu oluştur
-  app.post('/', { preHandler: [requireAuth, requireRole('ADMIN')] }, async (request: FastifyRequest, reply: FastifyReply) => {
+  app.post('/', { preHandler: [requireAuth, requireRole('ORG_ADMIN', 'SUPER_ADMIN')] }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { org, sub } = request.user as { sub: string; org: string };
     const { campaignId, managerId } = request.body as { campaignId: string; managerId: string };
 
@@ -28,14 +28,14 @@ export async function assessment360Routes(app: FastifyInstance) {
   });
 
   // GET /360 — Org bazlı 360° listesi
-  app.get('/', { preHandler: [requireAuth, requireRole('ADMIN')] }, async (request: FastifyRequest, reply: FastifyReply) => {
+  app.get('/', { preHandler: [requireAuth, requireRole('ORG_ADMIN', 'SUPER_ADMIN')] }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { org } = request.user as { org: string };
     const result = await assessment360Service.list(org);
     reply.send(result);
   });
 
   // GET /360/:configId — 360° detay
-  app.get('/:configId', { preHandler: [requireAuth, requireRole('ADMIN')] }, async (request: FastifyRequest, reply: FastifyReply) => {
+  app.get('/:configId', { preHandler: [requireAuth, requireRole('ORG_ADMIN', 'SUPER_ADMIN')] }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { org } = request.user as { org: string };
     const { configId } = request.params as { configId: string };
 
@@ -52,7 +52,7 @@ export async function assessment360Routes(app: FastifyInstance) {
   });
 
   // POST /360/:configId/raters — Değerlendirici ata
-  app.post('/:configId/raters', { preHandler: [requireAuth, requireRole('ADMIN')] }, async (request: FastifyRequest, reply: FastifyReply) => {
+  app.post('/:configId/raters', { preHandler: [requireAuth, requireRole('ORG_ADMIN', 'SUPER_ADMIN')] }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { org } = request.user as { org: string };
     const { configId } = request.params as { configId: string };
     const { raters } = request.body as {
@@ -89,7 +89,7 @@ export async function assessment360Routes(app: FastifyInstance) {
   });
 
   // POST /360/:configId/launch — 360° başlat (token üret + davet gönder)
-  app.post('/:configId/launch', { preHandler: [requireAuth, requireRole('ADMIN')] }, async (request: FastifyRequest, reply: FastifyReply) => {
+  app.post('/:configId/launch', { preHandler: [requireAuth, requireRole('ORG_ADMIN', 'SUPER_ADMIN')] }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { org, sub } = request.user as { sub: string; org: string };
     const { configId } = request.params as { configId: string };
 
@@ -106,7 +106,7 @@ export async function assessment360Routes(app: FastifyInstance) {
   });
 
   // GET /360/:configId/report — 360° rapor
-  app.get('/:configId/report', { preHandler: [requireAuth, requireRole('ADMIN')] }, async (request: FastifyRequest, reply: FastifyReply) => {
+  app.get('/:configId/report', { preHandler: [requireAuth, requireRole('ORG_ADMIN', 'SUPER_ADMIN')] }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { org } = request.user as { org: string };
     const { configId } = request.params as { configId: string };
 
