@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   ArrowLeft, Mail, UserPlus, XCircle, Clock, ShieldCheck,
   Settings2, MailCheck, Users, BarChart3, Pause, Trash2, RotateCcw, Save,
+  Upload, ImageIcon, FileText, CheckSquare,
 } from 'lucide-react';
 
 const API = 'http://localhost:3001';
@@ -47,6 +48,7 @@ interface OrgDetail {
   updatedAt: string;
   admins: OrgAdmin[];
   pendingInvites: PendingInvite[];
+  settings?: { logoUrl?: string; [key: string]: unknown };
 }
 
 interface Capabilities {
@@ -297,12 +299,14 @@ export default function OrganizationDetailPage() {
       </div>
 
       <Tabs defaultValue="general" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="general">Genel</TabsTrigger>
           <TabsTrigger value="capabilities">Yetenekler</TabsTrigger>
           <TabsTrigger value="email-logs">E-posta Logları</TabsTrigger>
           <TabsTrigger value="users">Kullanıcılar</TabsTrigger>
+          <TabsTrigger value="departments">Birimler</TabsTrigger>
           <TabsTrigger value="campaigns">Kampanyalar</TabsTrigger>
+          <TabsTrigger value="audit-logs">Denetim</TabsTrigger>
         </TabsList>
 
         {/* ══ TAB 1: GENEL ══ */}
@@ -319,6 +323,7 @@ export default function OrganizationDetailPage() {
             deactivating={deactivating}
             onInvite={handleInvite}
             onDeactivate={handleDeactivate}
+            onLogoUploaded={() => fetchOrg()}
             onRevokeInvite={async (inviteId: string) => {
               if (!confirm('Bu daveti iptal etmek istediğinize emin misiniz?')) return;
               try {
@@ -348,9 +353,19 @@ export default function OrganizationDetailPage() {
           <UsersTab orgId={id} />
         </TabsContent>
 
-        {/* ══ TAB 5: KAMPANYALAR ══ */}
+        {/* ══ TAB 5: BİRİMLER ══ */}
+        <TabsContent value="departments">
+          <DepartmentsTab orgId={id} />
+        </TabsContent>
+
+        {/* ══ TAB 6: KAMPANYALAR ══ */}
         <TabsContent value="campaigns">
           <CampaignsTab orgId={id} />
+        </TabsContent>
+
+        {/* ══ TAB 7: DENETİM KAYITLARI ══ */}
+        <TabsContent value="audit-logs">
+          <AuditLogsTab orgId={id} />
         </TabsContent>
       </Tabs>
     </div>
@@ -363,7 +378,7 @@ export default function OrganizationDetailPage() {
 
 function GeneralTab({
   org, tier, inviteEmail, setInviteEmail, inviteRole, setInviteRole,
-  inviteLoading, inviteResult, deactivating, onInvite, onDeactivate, onRevokeInvite,
+  inviteLoading, inviteResult, deactivating, onInvite, onDeactivate, onRevokeInvite, onLogoUploaded,
 }: {
   org: OrgDetail;
   tier: { label: string; className: string };
@@ -377,9 +392,108 @@ function GeneralTab({
   onInvite: (e: React.FormEvent) => void;
   onDeactivate: () => void;
   onRevokeInvite: (inviteId: string) => void;
+  onLogoUploaded: () => void;
 }) {
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [logoMsg, setLogoMsg] = useState<{ success: boolean; message: string } | null>(null);
+
+  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLogoUploading(true);
+    setLogoMsg(null);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch(`${API}/organizations/${org.id}/logo`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${getToken()}` },
+        body: formData,
+      });
+      const json = await res.json();
+      if (json.success) {
+        setLogoMsg({ success: true, message: 'Logo başarıyla yüklendi' });
+        onLogoUploaded();
+      } else {
+        setLogoMsg({ success: false, message: json.error?.message || 'Yükleme başarısız' });
+      }
+    } catch {
+      setLogoMsg({ success: false, message: 'Sunucu hatası' });
+    }
+    setLogoUploading(false);
+  }
+
+  async function handleLogoDelete() {
+    if (!confirm('Logoyu silmek istediğinize emin misiniz?')) return;
+    try {
+      const res = await fetch(`${API}/organizations/${org.id}/logo`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setLogoMsg({ success: true, message: 'Logo silindi' });
+        onLogoUploaded();
+      }
+    } catch { /* ignore */ }
+  }
+
   return (
     <div className="space-y-6">
+      {/* Logo Yönetimi */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ImageIcon className="w-5 h-5" />
+            Kurum Logosu
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-6">
+            {org.settings?.logoUrl ? (
+              <img
+                src={org.settings.logoUrl}
+                alt="Kurum logosu"
+                className="w-20 h-20 object-contain rounded-lg border border-border bg-muted"
+              />
+            ) : (
+              <div className="w-20 h-20 flex items-center justify-center rounded-lg border border-dashed border-border bg-muted text-muted-foreground">
+                <ImageIcon className="w-8 h-8" />
+              </div>
+            )}
+            <div className="flex flex-col gap-2">
+              <label className="cursor-pointer">
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml"
+                  className="sr-only"
+                  onChange={handleLogoUpload}
+                  disabled={logoUploading}
+                />
+                <span className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border bg-background text-sm font-medium hover:bg-muted transition-colors">
+                  <Upload className="w-4 h-4" />
+                  {logoUploading ? 'Yükleniyor...' : 'Logo Yükle'}
+                </span>
+              </label>
+              {org.settings?.logoUrl && (
+                <button
+                  onClick={handleLogoDelete}
+                  className="text-sm text-red-600 hover:text-red-700 text-left"
+                >
+                  Logoyu Kaldır
+                </button>
+              )}
+              <p className="text-xs text-muted-foreground">JPEG, PNG, GIF, WebP veya SVG. Maks. 2MB.</p>
+            </div>
+          </div>
+          {logoMsg && (
+            <div className={`mt-3 text-sm rounded-lg px-4 py-2 ${logoMsg.success ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
+              {logoMsg.message}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Kurum Bilgileri */}
       <Card>
         <CardHeader><CardTitle>Kurum Bilgileri</CardTitle></CardHeader>
@@ -969,10 +1083,15 @@ function UsersTab({ orgId }: { orgId: string }) {
   const [activeFilter, setActiveFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState<string | null>(null);
+  const [reassigning, setReassigning] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [bulkMsg, setBulkMsg] = useState<{ success: boolean; message: string } | null>(null);
   const limit = 20;
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
+    setSelectedIds(new Set());
     const params = new URLSearchParams({ page: String(page), limit: String(limit) });
     if (roleFilter) params.set('role', roleFilter);
     if (activeFilter) params.set('isActive', activeFilter);
@@ -1006,6 +1125,67 @@ function UsersTab({ orgId }: { orgId: string }) {
     setToggling(null);
   }
 
+  async function handleRoleChange(userId: string, newRole: string) {
+    setReassigning(userId);
+    try {
+      const res = await fetch(`${API}/organizations/${orgId}/users/${userId}/role`, {
+        method: 'PATCH',
+        headers: authHeaders(),
+        body: JSON.stringify({ role: newRole }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, role: newRole } : u));
+      }
+    } catch { /* ignore */ }
+    setReassigning(null);
+  }
+
+  async function handleBulk(action: 'activate' | 'deactivate' | 'delete') {
+    if (selectedIds.size === 0) return;
+    const confirmMsg = action === 'delete'
+      ? `${selectedIds.size} kullanıcıyı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`
+      : `${selectedIds.size} kullanıcıyı ${action === 'activate' ? 'aktifleştirmek' : 'deaktive etmek'} istediğinize emin misiniz?`;
+    if (!confirm(confirmMsg)) return;
+
+    setBulkLoading(true);
+    setBulkMsg(null);
+    try {
+      const res = await fetch(`${API}/organizations/${orgId}/users/bulk`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ action, userIds: Array.from(selectedIds) }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setBulkMsg({ success: true, message: `${json.data.count} kullanıcı güncellendi` });
+        await fetchUsers();
+      } else {
+        setBulkMsg({ success: false, message: json.error?.message || 'İşlem başarısız' });
+      }
+    } catch {
+      setBulkMsg({ success: false, message: 'Sunucu hatası' });
+    }
+    setBulkLoading(false);
+  }
+
+  function toggleSelect(userId: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(userId)) next.delete(userId);
+      else next.add(userId);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (selectedIds.size === users.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(users.map((u) => u.id)));
+    }
+  }
+
   const totalPages = Math.ceil(total / limit);
 
   return (
@@ -1037,6 +1217,33 @@ function UsersTab({ orgId }: { orgId: string }) {
         </div>
       </div>
 
+      {/* Bulk actions bar */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-blue-50 border border-blue-200">
+          <CheckSquare className="w-4 h-4 text-blue-600" />
+          <span className="text-sm font-medium text-blue-700">{selectedIds.size} kullanıcı seçili</span>
+          <div className="flex gap-2 ml-auto">
+            <Button size="sm" variant="outline" disabled={bulkLoading} onClick={() => handleBulk('activate')}
+              className="text-emerald-700 border-emerald-300 hover:bg-emerald-50">
+              Aktifleştir
+            </Button>
+            <Button size="sm" variant="outline" disabled={bulkLoading} onClick={() => handleBulk('deactivate')}
+              className="text-yellow-700 border-yellow-300 hover:bg-yellow-50">
+              Deaktive Et
+            </Button>
+            <Button size="sm" variant="destructive" disabled={bulkLoading} onClick={() => handleBulk('delete')}>
+              Sil
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {bulkMsg && (
+        <div className={`text-sm rounded-lg px-4 py-2 ${bulkMsg.success ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
+          {bulkMsg.message}
+        </div>
+      )}
+
       {/* Table */}
       <Card>
         <CardContent className="pt-4">
@@ -1048,6 +1255,14 @@ function UsersTab({ orgId }: { orgId: string }) {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-10">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.size === users.length && users.length > 0}
+                      onChange={toggleSelectAll}
+                      className="rounded border-gray-300"
+                    />
+                  </TableHead>
                   <TableHead>Ad / E-posta</TableHead>
                   <TableHead>Rol</TableHead>
                   <TableHead>Birim</TableHead>
@@ -1058,7 +1273,15 @@ function UsersTab({ orgId }: { orgId: string }) {
               </TableHeader>
               <TableBody>
                 {users.map((user) => (
-                  <TableRow key={user.id}>
+                  <TableRow key={user.id} className={selectedIds.has(user.id) ? 'bg-blue-50/50' : ''}>
+                    <TableCell>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(user.id)}
+                        onChange={() => toggleSelect(user.id)}
+                        className="rounded border-gray-300"
+                      />
+                    </TableCell>
                     <TableCell>
                       <div>
                         <p className="font-medium">{user.name || '—'}</p>
@@ -1066,9 +1289,20 @@ function UsersTab({ orgId }: { orgId: string }) {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="text-xs">
-                        {ROLE_LABELS[user.role] || user.role}
-                      </Badge>
+                      {reassigning === user.id ? (
+                        <span className="text-xs text-muted-foreground">...</span>
+                      ) : (
+                        <select
+                          value={user.role}
+                          onChange={(e) => handleRoleChange(user.id, e.target.value)}
+                          className="text-xs px-2 py-1 rounded border border-border bg-background"
+                        >
+                          <option value="ORG_ADMIN">Kurum Yöneticisi</option>
+                          <option value="UNIT_ADMIN">Birim Yöneticisi</option>
+                          <option value="PARTICIPANT">Katılımcı</option>
+                          <option value="VIEWER">Görüntüleyici</option>
+                        </select>
+                      )}
                     </TableCell>
                     <TableCell className="text-sm">{user.department?.name || '—'}</TableCell>
                     <TableCell className="text-center">
@@ -1101,6 +1335,384 @@ function UsersTab({ orgId }: { orgId: string }) {
               <p className="text-sm text-muted-foreground">
                 Sayfa {page}/{totalPages}
               </p>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>Önceki</Button>
+                <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Sonraki</Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════
+// TAB 5: BİRİMLER (CRUD)
+// ════════════════════════════════════════════════════
+
+interface Department {
+  id: string;
+  name: string;
+  parentDepartmentId: string | null;
+  parentDepartment: { id: string; name: string } | null;
+  headUserId: string | null;
+  userCount: number;
+}
+
+function DepartmentsTab({ orgId }: { orgId: string }) {
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [formName, setFormName] = useState('');
+  const [formParentId, setFormParentId] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<{ success: boolean; message: string } | null>(null);
+
+  const fetchDepartments = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/organizations/${orgId}/departments`, { headers: authHeaders() });
+      const json = await res.json();
+      if (json.success) setDepartments(json.data.departments);
+    } catch { /* ignore */ }
+    setLoading(false);
+  }, [orgId]);
+
+  useEffect(() => { fetchDepartments(); }, [fetchDepartments]);
+
+  function startEdit(dept: Department) {
+    setEditingId(dept.id);
+    setFormName(dept.name);
+    setFormParentId(dept.parentDepartmentId ?? '');
+    setShowForm(true);
+    setMsg(null);
+  }
+
+  function startCreate() {
+    setEditingId(null);
+    setFormName('');
+    setFormParentId('');
+    setShowForm(true);
+    setMsg(null);
+  }
+
+  function cancelForm() {
+    setShowForm(false);
+    setEditingId(null);
+    setFormName('');
+    setFormParentId('');
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!formName.trim()) return;
+    setSaving(true);
+    setMsg(null);
+
+    try {
+      const body: Record<string, unknown> = { name: formName.trim() };
+      if (formParentId) body.parentDepartmentId = formParentId;
+
+      const url = editingId
+        ? `${API}/organizations/${orgId}/departments/${editingId}`
+        : `${API}/organizations/${orgId}/departments`;
+      const method = editingId ? 'PUT' : 'POST';
+
+      const res = await fetch(url, { method, headers: authHeaders(), body: JSON.stringify(body) });
+      const json = await res.json();
+
+      if (json.success) {
+        setMsg({ success: true, message: editingId ? 'Birim güncellendi' : 'Birim oluşturuldu' });
+        cancelForm();
+        await fetchDepartments();
+      } else {
+        setMsg({ success: false, message: json.error?.message || 'Hata oluştu' });
+      }
+    } catch {
+      setMsg({ success: false, message: 'Sunucu hatası' });
+    }
+    setSaving(false);
+  }
+
+  async function handleDelete(dept: Department) {
+    if (!confirm(`"${dept.name}" birimini silmek istediğinize emin misiniz?`)) return;
+    setMsg(null);
+    try {
+      const res = await fetch(`${API}/organizations/${orgId}/departments/${dept.id}`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setMsg({ success: true, message: 'Birim silindi' });
+        await fetchDepartments();
+      } else {
+        setMsg({ success: false, message: json.error?.message || 'Silinemedi' });
+      }
+    } catch {
+      setMsg({ success: false, message: 'Sunucu hatası' });
+    }
+  }
+
+  // Available parents: all departments except the one being edited (and its children — simple check)
+  const availableParents = departments.filter((d) => d.id !== editingId);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Users className="w-5 h-5 text-muted-foreground" />
+          <h3 className="text-base font-semibold">Birim Yönetimi</h3>
+          <span className="text-sm text-muted-foreground">({departments.length} birim)</span>
+        </div>
+        {!showForm && (
+          <Button size="sm" onClick={startCreate}>
+            <UserPlus className="w-4 h-4 mr-2" />
+            Yeni Birim
+          </Button>
+        )}
+      </div>
+
+      {msg && (
+        <div className={`text-sm rounded-lg px-4 py-2 ${msg.success ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
+          {msg.message}
+        </div>
+      )}
+
+      {showForm && (
+        <Card className="border-primary/30">
+          <CardHeader>
+            <CardTitle className="text-base">{editingId ? 'Birimi Düzenle' : 'Yeni Birim Oluştur'}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              <div>
+                <label className="text-xs text-muted-foreground uppercase tracking-wider mb-1 block">Birim Adı *</label>
+                <input
+                  type="text"
+                  required
+                  value={formName}
+                  onChange={(e) => setFormName(e.target.value)}
+                  placeholder="örn. Mühendislik Fakültesi"
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground uppercase tracking-wider mb-1 block">Üst Birim (Opsiyonel)</label>
+                <select
+                  value={formParentId}
+                  onChange={(e) => setFormParentId(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm"
+                >
+                  <option value="">— Üst birim yok —</option>
+                  {availableParents.map((d) => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex gap-2">
+                <Button type="submit" size="sm" disabled={saving}>
+                  <Save className="w-4 h-4 mr-1" />
+                  {saving ? 'Kaydediliyor...' : editingId ? 'Güncelle' : 'Oluştur'}
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={cancelForm}>İptal</Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+
+      <Card>
+        <CardContent className="pt-4">
+          {loading ? (
+            <div className="py-8 text-center text-muted-foreground animate-pulse">Yükleniyor...</div>
+          ) : departments.length === 0 ? (
+            <div className="py-8 text-center text-muted-foreground">
+              Henüz birim oluşturulmamış. CSV içe aktarma ile otomatik oluşturulur veya "Yeni Birim" butonunu kullanın.
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Birim Adı</TableHead>
+                  <TableHead>Üst Birim</TableHead>
+                  <TableHead className="text-center">Kullanıcı</TableHead>
+                  <TableHead className="text-right">İşlemler</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {departments.map((dept) => (
+                  <TableRow key={dept.id}>
+                    <TableCell className="font-medium">{dept.name}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {dept.parentDepartment?.name || '—'}
+                    </TableCell>
+                    <TableCell className="text-center text-sm">{dept.userCount}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button variant="outline" size="sm" onClick={() => startEdit(dept)}>
+                          Düzenle
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => handleDelete(dept)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════
+// TAB 6: DENETİM KAYITLARI
+// ════════════════════════════════════════════════════
+
+interface AuditLog {
+  id: string;
+  action: string;
+  resourceType: string | null;
+  resourceId: string | null;
+  details: unknown;
+  timestamp: string;
+  performedBy: { id: string; email: string; name: string | null } | null;
+}
+
+function AuditLogsTab({ orgId }: { orgId: string }) {
+  const [logs, setLogs] = useState<AuditLog[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [resourceTypeFilter, setResourceTypeFilter] = useState('');
+  const [loading, setLoading] = useState(true);
+  const limit = 20;
+
+  const fetchLogs = useCallback(async () => {
+    setLoading(true);
+    const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+    if (resourceTypeFilter) params.set('resourceType', resourceTypeFilter);
+
+    try {
+      const res = await fetch(`${API}/organizations/${orgId}/audit-logs?${params}`, { headers: authHeaders() });
+      const json = await res.json();
+      if (json.success) {
+        setLogs(json.data.logs);
+        setTotal(json.data.pagination.total);
+      }
+    } catch { /* ignore */ }
+    setLoading(false);
+  }, [orgId, page, resourceTypeFilter]);
+
+  useEffect(() => { fetchLogs(); }, [fetchLogs]);
+
+  const totalPages = Math.ceil(total / limit);
+
+  const ACTION_COLORS: Record<string, string> = {
+    'user.activate': 'bg-emerald-50 text-emerald-700',
+    'user.deactivate': 'bg-orange-50 text-orange-700',
+    'user.bulk.activate': 'bg-emerald-50 text-emerald-700',
+    'user.bulk.deactivate': 'bg-orange-50 text-orange-700',
+    'user.bulk.delete': 'bg-red-50 text-red-700',
+    'user.role.change': 'bg-blue-50 text-blue-700',
+    'department.create': 'bg-emerald-50 text-emerald-700',
+    'department.update': 'bg-blue-50 text-blue-700',
+    'department.delete': 'bg-red-50 text-red-700',
+    'org.logo.upload': 'bg-purple-50 text-purple-700',
+    'org.logo.delete': 'bg-red-50 text-red-700',
+    'capabilities.update': 'bg-blue-50 text-blue-700',
+    'capabilities.reset': 'bg-gray-50 text-gray-700',
+    'campaign.pause': 'bg-yellow-50 text-yellow-700',
+    'invite.revoke': 'bg-red-50 text-red-700',
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <FileText className="w-5 h-5 text-muted-foreground" />
+        <h3 className="text-base font-semibold">Denetim Kayıtları</h3>
+        <span className="text-sm text-muted-foreground">({total} kayıt)</span>
+      </div>
+
+      {/* Filter */}
+      <div className="flex gap-3">
+        <select
+          value={resourceTypeFilter}
+          onChange={(e) => { setResourceTypeFilter(e.target.value); setPage(1); }}
+          className="px-3 py-2 rounded-lg border border-border bg-background text-sm"
+        >
+          <option value="">Tüm Kaynaklar</option>
+          <option value="user">Kullanıcı</option>
+          <option value="organization">Kurum</option>
+          <option value="department">Birim</option>
+          <option value="campaign">Kampanya</option>
+          <option value="invite">Davet</option>
+        </select>
+      </div>
+
+      <Card>
+        <CardContent className="pt-4">
+          {loading ? (
+            <div className="py-8 text-center text-muted-foreground animate-pulse">Yükleniyor...</div>
+          ) : logs.length === 0 ? (
+            <div className="py-8 text-center text-muted-foreground">Denetim kaydı bulunamadı.</div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Tarih</TableHead>
+                  <TableHead>İşlem</TableHead>
+                  <TableHead>Kaynak</TableHead>
+                  <TableHead>Yapan</TableHead>
+                  <TableHead>Detay</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {logs.map((log) => (
+                  <TableRow key={log.id}>
+                    <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                      {new Date(log.timestamp).toLocaleString('tr-TR')}
+                    </TableCell>
+                    <TableCell>
+                      <span className={`inline-block text-xs font-mono px-2 py-0.5 rounded ${ACTION_COLORS[log.action] || 'bg-gray-50 text-gray-700'}`}>
+                        {log.action}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {log.resourceType || '—'}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {log.performedBy ? (
+                        <div>
+                          <p className="font-medium">{log.performedBy.name || '—'}</p>
+                          <p className="text-xs text-muted-foreground">{log.performedBy.email}</p>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">Sistem</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate font-mono">
+                      {log.details ? JSON.stringify(log.details) : '—'}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4 pt-4 border-t">
+              <p className="text-sm text-muted-foreground">Sayfa {page}/{totalPages}</p>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>Önceki</Button>
                 <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Sonraki</Button>

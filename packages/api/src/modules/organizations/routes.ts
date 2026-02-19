@@ -174,6 +174,174 @@ export async function organizationsRoutes(app: FastifyInstance) {
     reply.send(result);
   });
 
+  // PATCH /organizations/:id/users/:userId/role — Rol değiştir
+  app.patch('/:id/users/:userId/role', { preHandler: [requireRole('SUPER_ADMIN')] }, async (request, reply) => {
+    const { id, userId } = request.params as { id: string; userId: string };
+    const { role } = request.body as { role: string };
+    const { sub } = (request as any).user as { sub: string };
+    const result = await organizationsService.reassignUserRole(id, userId, role, sub);
+    if (!result.success) {
+      return reply.status(400).send({ success: false, error: { code: 'BAD_REQUEST', message: result.error } });
+    }
+    reply.send(result);
+  });
+
+  // POST /organizations/:id/users/bulk — Toplu kullanıcı işlemi
+  app.post('/:id/users/bulk', { preHandler: [requireRole('SUPER_ADMIN')] }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { action, userIds } = request.body as { action: 'activate' | 'deactivate' | 'delete'; userIds: string[] };
+    const { sub } = (request as any).user as { sub: string };
+
+    if (!Array.isArray(userIds) || userIds.length === 0) {
+      return reply.status(400).send({ success: false, error: { code: 'BAD_REQUEST', message: 'userIds boş olamaz' } });
+    }
+
+    let result;
+    if (action === 'activate') {
+      result = await organizationsService.bulkToggleUsers(id, userIds, true, sub);
+    } else if (action === 'deactivate') {
+      result = await organizationsService.bulkToggleUsers(id, userIds, false, sub);
+    } else if (action === 'delete') {
+      result = await organizationsService.bulkDeleteUsers(id, userIds, sub);
+    } else {
+      return reply.status(400).send({ success: false, error: { code: 'BAD_REQUEST', message: 'Geçersiz işlem' } });
+    }
+
+    if (!result.success) {
+      return reply.status(400).send({ success: false, error: { code: 'BAD_REQUEST', message: result.error } });
+    }
+    reply.send(result);
+  });
+
+  // ════════════════════════════════════
+  // LOGO UPLOAD
+  // ════════════════════════════════════
+
+  // POST /organizations/:id/logo — Logo yükle
+  app.post('/:id/logo', { preHandler: [requireRole('SUPER_ADMIN')] }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { sub } = (request as any).user as { sub: string };
+
+    const file = await request.file();
+    if (!file) {
+      return reply.status(400).send({ success: false, error: { code: 'BAD_REQUEST', message: 'Dosya bulunamadı' } });
+    }
+
+    const buffer = await file.toBuffer();
+    if (buffer.length > 2 * 1024 * 1024) {
+      return reply.status(400).send({ success: false, error: { code: 'BAD_REQUEST', message: 'Dosya boyutu 2MB limitini aşıyor' } });
+    }
+
+    const result = await organizationsService.uploadLogo(id, buffer, file.mimetype, sub);
+    if (!result.success) {
+      return reply.status(400).send({ success: false, error: { code: 'BAD_REQUEST', message: result.error } });
+    }
+    reply.send(result);
+  });
+
+  // DELETE /organizations/:id/logo — Logo sil
+  app.delete('/:id/logo', { preHandler: [requireRole('SUPER_ADMIN')] }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { sub } = (request as any).user as { sub: string };
+
+    const { prisma } = await import('../../config/database');
+    const org = await prisma.organization.findUnique({ where: { id } });
+    if (!org) return reply.status(404).send({ success: false, error: { code: 'NOT_FOUND', message: 'Kurum bulunamadı' } });
+
+    const currentSettings = (org.settings as Record<string, unknown>) ?? {};
+    delete currentSettings.logoUrl;
+    await prisma.organization.update({ where: { id }, data: { settings: currentSettings } });
+
+    await prisma.auditLog.create({
+      data: {
+        orgId: id,
+        userId: sub,
+        action: 'org.logo.delete',
+        resourceType: 'organization',
+        resourceId: id,
+      },
+    });
+
+    reply.send({ success: true, data: { message: 'Logo silindi' } });
+  });
+
+  // ════════════════════════════════════
+  // DEPARTMENT MANAGEMENT
+  // ════════════════════════════════════
+
+  // GET /organizations/:id/departments — Birim listesi
+  app.get('/:id/departments', { preHandler: [requireRole('SUPER_ADMIN')] }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const result = await organizationsService.listDepartments(id);
+    if (!result.success) {
+      return reply.status(404).send({ success: false, error: { code: 'NOT_FOUND', message: result.error } });
+    }
+    reply.send(result);
+  });
+
+  // POST /organizations/:id/departments — Yeni birim oluştur
+  app.post('/:id/departments', { preHandler: [requireRole('SUPER_ADMIN')] }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { name, parentDepartmentId } = request.body as { name: string; parentDepartmentId?: string };
+    const { sub } = (request as any).user as { sub: string };
+
+    if (!name || name.trim().length < 1) {
+      return reply.status(400).send({ success: false, error: { code: 'BAD_REQUEST', message: 'Birim adı zorunludur' } });
+    }
+
+    const result = await organizationsService.createDepartment(id, name.trim(), parentDepartmentId, sub);
+    if (!result.success) {
+      return reply.status(400).send({ success: false, error: { code: 'BAD_REQUEST', message: result.error } });
+    }
+    reply.status(201).send(result);
+  });
+
+  // PUT /organizations/:id/departments/:deptId — Birim güncelle
+  app.put('/:id/departments/:deptId', { preHandler: [requireRole('SUPER_ADMIN')] }, async (request, reply) => {
+    const { id, deptId } = request.params as { id: string; deptId: string };
+    const data = request.body as { name?: string; parentDepartmentId?: string | null };
+    const { sub } = (request as any).user as { sub: string };
+
+    const result = await organizationsService.updateDepartment(id, deptId, data, sub);
+    if (!result.success) {
+      return reply.status(400).send({ success: false, error: { code: 'BAD_REQUEST', message: result.error } });
+    }
+    reply.send(result);
+  });
+
+  // DELETE /organizations/:id/departments/:deptId — Birim sil
+  app.delete('/:id/departments/:deptId', { preHandler: [requireRole('SUPER_ADMIN')] }, async (request, reply) => {
+    const { id, deptId } = request.params as { id: string; deptId: string };
+    const { sub } = (request as any).user as { sub: string };
+
+    const result = await organizationsService.deleteDepartment(id, deptId, sub);
+    if (!result.success) {
+      return reply.status(400).send({ success: false, error: { code: 'BAD_REQUEST', message: result.error } });
+    }
+    reply.send(result);
+  });
+
+  // ════════════════════════════════════
+  // AUDIT LOG VIEWER
+  // ════════════════════════════════════
+
+  // GET /organizations/:id/audit-logs — Denetim kayıtları
+  app.get('/:id/audit-logs', { preHandler: [requireRole('SUPER_ADMIN')] }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { page = '1', limit = '20', action, resourceType, userId } = request.query as {
+      page?: string; limit?: string; action?: string; resourceType?: string; userId?: string;
+    };
+    const result = await organizationsService.getAuditLogs(id, parseInt(page), parseInt(limit), {
+      action,
+      resourceType,
+      userId,
+    });
+    if (!result.success) {
+      return reply.status(404).send({ success: false, error: { code: 'NOT_FOUND', message: result.error } });
+    }
+    reply.send(result);
+  });
+
   // ════════════════════════════════════
   // CAMPAIGN MANAGEMENT
   // ════════════════════════════════════

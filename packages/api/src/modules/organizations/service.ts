@@ -478,6 +478,334 @@ class OrganizationsService {
   }
 
   // ════════════════════════════════════
+  // LOGO UPLOAD
+  // ════════════════════════════════════
+
+  async uploadLogo(orgId: string, fileBuffer: Buffer, mimeType: string, performedBy?: string) {
+    const org = await prisma.organization.findUnique({ where: { id: orgId } });
+    if (!org) return { success: false, error: 'Kurum bulunamadı' };
+
+    // Validate image type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+    if (!allowedTypes.includes(mimeType)) {
+      return { success: false, error: 'Desteklenmeyen dosya türü. JPEG, PNG, GIF, WebP veya SVG yükleyin.' };
+    }
+
+    // Build a data URL (base64) — works without MinIO for MVP
+    const base64 = fileBuffer.toString('base64');
+    const logoUrl = `data:${mimeType};base64,${base64}`;
+
+    const currentSettings = (org.settings as Record<string, unknown>) ?? {};
+    const updatedSettings = { ...currentSettings, logoUrl };
+
+    await prisma.organization.update({
+      where: { id: orgId },
+      data: { settings: updatedSettings },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        orgId,
+        userId: performedBy,
+        action: 'org.logo.upload',
+        resourceType: 'organization',
+        resourceId: orgId,
+        detailsJson: { mimeType, sizeBytes: fileBuffer.length },
+      },
+    });
+
+    return { success: true, data: { logoUrl } };
+  }
+
+  // ════════════════════════════════════
+  // DEPARTMENT MANAGEMENT
+  // ════════════════════════════════════
+
+  async listDepartments(orgId: string) {
+    const org = await prisma.organization.findUnique({ where: { id: orgId } });
+    if (!org) return { success: false, error: 'Kurum bulunamadı' };
+
+    const departments = await prisma.department.findMany({
+      where: { orgId },
+      include: {
+        _count: { select: { users: true } },
+        parentDepartment: { select: { id: true, name: true } },
+      },
+      orderBy: { name: 'asc' },
+    });
+
+    return {
+      success: true,
+      data: {
+        departments: departments.map((d) => ({
+          id: d.id,
+          name: d.name,
+          parentDepartmentId: d.parentDepartmentId,
+          parentDepartment: d.parentDepartment,
+          headUserId: d.headUserId,
+          userCount: d._count.users,
+        })),
+      },
+    };
+  }
+
+  async createDepartment(orgId: string, name: string, parentDepartmentId?: string, performedBy?: string) {
+    const org = await prisma.organization.findUnique({ where: { id: orgId } });
+    if (!org) return { success: false, error: 'Kurum bulunamadı' };
+
+    if (parentDepartmentId) {
+      const parent = await prisma.department.findFirst({ where: { id: parentDepartmentId, orgId } });
+      if (!parent) return { success: false, error: 'Üst birim bulunamadı' };
+    }
+
+    try {
+      const dept = await prisma.department.create({
+        data: { orgId, name, parentDepartmentId: parentDepartmentId ?? null },
+      });
+
+      await prisma.auditLog.create({
+        data: {
+          orgId,
+          userId: performedBy,
+          action: 'department.create',
+          resourceType: 'department',
+          resourceId: dept.id,
+          detailsJson: { name, parentDepartmentId },
+        },
+      });
+
+      return { success: true, data: { id: dept.id, name: dept.name, parentDepartmentId: dept.parentDepartmentId } };
+    } catch (err: any) {
+      if (err.code === 'P2002') return { success: false, error: 'Bu isimde bir birim zaten mevcut' };
+      throw err;
+    }
+  }
+
+  async updateDepartment(orgId: string, departmentId: string, data: { name?: string; parentDepartmentId?: string | null }, performedBy?: string) {
+    const dept = await prisma.department.findFirst({ where: { id: departmentId, orgId } });
+    if (!dept) return { success: false, error: 'Birim bulunamadı' };
+
+    if (data.parentDepartmentId) {
+      if (data.parentDepartmentId === departmentId) return { success: false, error: 'Birim kendi kendine üst birim olamaz' };
+      const parent = await prisma.department.findFirst({ where: { id: data.parentDepartmentId, orgId } });
+      if (!parent) return { success: false, error: 'Üst birim bulunamadı' };
+    }
+
+    try {
+      const updated = await prisma.department.update({
+        where: { id: departmentId },
+        data: {
+          ...(data.name !== undefined ? { name: data.name } : {}),
+          ...(data.parentDepartmentId !== undefined ? { parentDepartmentId: data.parentDepartmentId } : {}),
+        },
+      });
+
+      await prisma.auditLog.create({
+        data: {
+          orgId,
+          userId: performedBy,
+          action: 'department.update',
+          resourceType: 'department',
+          resourceId: departmentId,
+          detailsJson: data,
+        },
+      });
+
+      return { success: true, data: { id: updated.id, name: updated.name } };
+    } catch (err: any) {
+      if (err.code === 'P2002') return { success: false, error: 'Bu isimde bir birim zaten mevcut' };
+      throw err;
+    }
+  }
+
+  async deleteDepartment(orgId: string, departmentId: string, performedBy?: string) {
+    const dept = await prisma.department.findFirst({
+      where: { id: departmentId, orgId },
+      include: { _count: { select: { users: true, childDepartments: true } } },
+    });
+    if (!dept) return { success: false, error: 'Birim bulunamadı' };
+    if (dept._count.users > 0) return { success: false, error: 'Bu birimde kullanıcılar var. Önce kullanıcıları taşıyın veya kaldırın.' };
+    if (dept._count.childDepartments > 0) return { success: false, error: 'Bu birimin alt birimleri var. Önce alt birimleri silin.' };
+
+    await prisma.department.delete({ where: { id: departmentId } });
+
+    await prisma.auditLog.create({
+      data: {
+        orgId,
+        userId: performedBy,
+        action: 'department.delete',
+        resourceType: 'department',
+        resourceId: departmentId,
+        detailsJson: { name: dept.name },
+      },
+    });
+
+    return { success: true, data: { message: 'Birim silindi' } };
+  }
+
+  // ════════════════════════════════════
+  // USER ROLE REASSIGNMENT
+  // ════════════════════════════════════
+
+  async reassignUserRole(orgId: string, userId: string, newRole: string, performedBy?: string) {
+    const user = await prisma.user.findFirst({ where: { id: userId, orgId } });
+    if (!user) return { success: false, error: 'Kullanıcı bulunamadı' };
+
+    const allowedRoles = ['ORG_ADMIN', 'UNIT_ADMIN', 'PARTICIPANT', 'VIEWER'];
+    if (!allowedRoles.includes(newRole)) return { success: false, error: 'Geçersiz rol' };
+
+    const prevRole = user.role;
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { role: newRole as any },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        orgId,
+        userId: performedBy,
+        action: 'user.role.change',
+        resourceType: 'user',
+        resourceId: userId,
+        detailsJson: { previousRole: prevRole, newRole },
+      },
+    });
+
+    return { success: true, data: { userId, role: newRole } };
+  }
+
+  // ════════════════════════════════════
+  // AUDIT LOG VIEWER
+  // ════════════════════════════════════
+
+  async getAuditLogs(
+    orgId: string,
+    page: number,
+    limit: number,
+    filters: { action?: string; resourceType?: string; userId?: string },
+  ) {
+    const org = await prisma.organization.findUnique({ where: { id: orgId } });
+    if (!org) return { success: false, error: 'Kurum bulunamadı' };
+
+    const where: any = { orgId };
+    if (filters.action) where.action = { contains: filters.action };
+    if (filters.resourceType) where.resourceType = filters.resourceType;
+    if (filters.userId) where.userId = filters.userId;
+
+    const [logs, total] = await Promise.all([
+      prisma.auditLog.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: { timestamp: 'desc' },
+      }),
+      prisma.auditLog.count({ where }),
+    ]);
+
+    // Batch-fetch performers to decrypt their names/emails
+    const performerIds = [...new Set(logs.map((l) => l.userId).filter((id): id is string => !!id))];
+    const performers = performerIds.length > 0
+      ? await prisma.user.findMany({
+          where: { id: { in: performerIds } },
+          select: { id: true, emailEncrypted: true, nameEncrypted: true },
+        })
+      : [];
+    const performerMap = new Map(performers.map((u) => [u.id, u]));
+
+    return {
+      success: true,
+      data: {
+        logs: logs.map((log) => {
+          const performer = log.userId ? performerMap.get(log.userId) : undefined;
+          return {
+            id: log.id,
+            action: log.action,
+            resourceType: log.resourceType,
+            resourceId: log.resourceId,
+            ipAddress: log.ipAddress,
+            userAgent: log.userAgent,
+            details: log.detailsJson,
+            timestamp: log.timestamp,
+            performedBy: performer
+              ? {
+                  id: performer.id,
+                  email: this.decryptField(performer.emailEncrypted),
+                  name: performer.nameEncrypted ? this.decryptField(performer.nameEncrypted) : null,
+                }
+              : null,
+          };
+        }),
+        pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+      },
+    };
+  }
+
+  // ════════════════════════════════════
+  // BULK USER OPERATIONS
+  // ════════════════════════════════════
+
+  async bulkToggleUsers(orgId: string, userIds: string[], isActive: boolean, performedBy?: string) {
+    // Verify all users belong to this org
+    const users = await prisma.user.findMany({
+      where: { id: { in: userIds }, orgId },
+      select: { id: true },
+    });
+    if (users.length !== userIds.length) {
+      return { success: false, error: 'Bazı kullanıcılar bu kuruma ait değil' };
+    }
+
+    await prisma.user.updateMany({
+      where: { id: { in: userIds }, orgId },
+      data: { isActive },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        orgId,
+        userId: performedBy,
+        action: isActive ? 'user.bulk.activate' : 'user.bulk.deactivate',
+        resourceType: 'user',
+        detailsJson: { userIds, count: userIds.length, isActive },
+      },
+    });
+
+    return { success: true, data: { count: userIds.length, isActive } };
+  }
+
+  async bulkDeleteUsers(orgId: string, userIds: string[], performedBy?: string) {
+    const users = await prisma.user.findMany({
+      where: { id: { in: userIds }, orgId },
+      select: { id: true, role: true },
+    });
+    if (users.length !== userIds.length) {
+      return { success: false, error: 'Bazı kullanıcılar bu kuruma ait değil' };
+    }
+
+    // Prevent deleting admins in bulk for safety
+    const adminIds = users.filter((u) => ['SUPER_ADMIN', 'ORG_ADMIN'].includes(u.role)).map((u) => u.id);
+    if (adminIds.length > 0) {
+      return { success: false, error: 'Yönetici rolündeki kullanıcılar toplu silinemez. Önce rollerini değiştirin.' };
+    }
+
+    await prisma.user.deleteMany({
+      where: { id: { in: userIds }, orgId },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        orgId,
+        userId: performedBy,
+        action: 'user.bulk.delete',
+        resourceType: 'user',
+        detailsJson: { userIds, count: userIds.length },
+      },
+    });
+
+    return { success: true, data: { count: userIds.length } };
+  }
+
+  // ════════════════════════════════════
   // CAMPAIGN INTERVENTION
   // ════════════════════════════════════
 
