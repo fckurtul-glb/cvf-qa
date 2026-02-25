@@ -33,7 +33,7 @@ const app = Fastify({
 async function bootstrap() {
   // ── Plugins ──
   await app.register(cors, {
-    origin: config.CORS_ORIGINS.split(','),
+    origin: config.CORS_ORIGINS.split(',').map((o) => o.trim()),
     credentials: true,
   });
 
@@ -44,7 +44,7 @@ async function bootstrap() {
         scriptSrc: ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
         imgSrc: ["'self'", 'data:', 'blob:'],
-        connectSrc: ["'self'", ...config.CORS_ORIGINS.split(',')],
+        connectSrc: ["'self'", ...config.CORS_ORIGINS.split(',').map((o) => o.trim())],
         fontSrc: ["'self'"],
         objectSrc: ["'none'"],
         mediaSrc: ["'self'"],

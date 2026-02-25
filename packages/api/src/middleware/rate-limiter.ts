@@ -7,7 +7,7 @@ export function createRateLimiter(config: { window: number; max: number }) {
     const count = await redis.incr(key);
     if (count === 1) await redis.pexpire(key, config.window);
     if (count > config.max) {
-      reply.status(429).send({ success: false, error: { code: 'RATE_LIMITED', message: 'Çok fazla istek' } });
+      return reply.status(429).send({ success: false, error: { code: 'RATE_LIMITED', message: 'Çok fazla istek' } });
     }
   };
 }

@@ -1,7 +1,10 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { requireAuth } from '../../middleware/auth';
 import { surveyService } from './service';
+import { prisma } from '../../config/database';
 import questionBank from '../../data/question-bank.json';
+
+type JWTPayload = { sub: string; org: string; role: string };
 
 export async function surveyRoutes(app: FastifyInstance) {
   // GET /survey/ocai/questions — OCAI soru setini döndür
@@ -191,6 +194,19 @@ export async function surveyRoutes(app: FastifyInstance) {
   app.get('/result/:id', { preHandler: [requireAuth] }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
     const { module: moduleParam } = request.query as { module?: string };
+    const { org } = request.user as JWTPayload;
+
+    // FIX A: Cross-org data leak guard — verify this response belongs to caller's org
+    const check = await prisma.surveyResponse.findUnique({
+      where: { id },
+      select: { campaign: { select: { orgId: true } } },
+    });
+    if (!check || check.campaign.orgId !== org) {
+      return reply.status(404).send({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Yanıt bulunamadı' },
+      });
+    }
 
     const LIKERT_MODULES: Record<string, string> = {
       QCI: 'M2_QCI',

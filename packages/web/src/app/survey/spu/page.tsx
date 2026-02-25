@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import questionBank from '../../../data/question-bank.json';
 import { LikertSurvey, type LikertQuestion } from '../../../components/survey/likert-survey';
 
-const API = 'http://localhost:3001';
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 const SPU = questionBank.modules.M6_SPU;
 
 // SPU'nun subdimensions yapısı yok — düz items listesi

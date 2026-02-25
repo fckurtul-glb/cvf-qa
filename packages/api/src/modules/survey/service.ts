@@ -1,4 +1,5 @@
 import { prisma } from '../../config/database';
+import { redis } from '../../config/redis';
 import { config } from '../../config/env';
 import crypto from 'crypto';
 import questionBank from '../../data/question-bank.json';
@@ -7,6 +8,9 @@ const OCAI = questionBank.modules.M1_OCAI;
 const VALID_DIMENSIONS = OCAI.dimensions.map((d) => d.id);
 const VALID_PERSPECTIVES = OCAI.perspectives;
 const VALID_ALTERNATIVES = ['A', 'B', 'C', 'D'];
+
+// Redis key TTL for survey resume: 14 days
+const RESUME_KEY_TTL = 86400 * 14;
 
 class SurveyService {
   // ── Token Doğrulama ──
@@ -26,15 +30,22 @@ class SurveyService {
     if (token.usedCount >= token.maxUses) return { success: false, error: 'Bu token zaten kullanılmış' };
     if (token.campaign.status !== 'ACTIVE') return { success: false, error: 'Kampanya aktif değil' };
 
-    // Devam eden yanıt var mı?
-    const existingResponse = await prisma.surveyResponse.findFirst({
-      where: {
-        campaignId: token.campaignId,
-        anonymousParticipantId: { startsWith: tokenHash.substring(0, 12) },
-        status: { in: ['IN_PROGRESS', 'NOT_STARTED'] },
-      },
-      include: { answers: true },
-    });
+    // FIX C: Resume lookup via Redis instead of anonymousParticipantId prefix (prevents identity leak)
+    let existingResponse = null;
+    const resumeResponseId = await redis.get(`survey:resume:${tokenHash}`);
+    if (resumeResponseId) {
+      existingResponse = await prisma.surveyResponse.findUnique({
+        where: { id: resumeResponseId },
+        include: { answers: true },
+      });
+      // Discard if response is already completed or belongs to a different campaign
+      if (
+        existingResponse &&
+        (existingResponse.status === 'COMPLETED' || existingResponse.campaignId !== token.campaignId)
+      ) {
+        existingResponse = null;
+      }
+    }
 
     return {
       success: true,
@@ -70,8 +81,8 @@ class SurveyService {
 
     if (!token) return { success: false, error: 'Geçersiz token' };
 
-    // Anonim ID oluştur
-    const anonymousId = tokenHash.substring(0, 12) + crypto.randomBytes(6).toString('hex');
+    // FIX C: Fully random anonymous ID — no connection to tokenHash (prevents identity leak)
+    const anonymousId = crypto.randomBytes(18).toString('hex');
 
     // SurveyResponse oluştur
     const response = await prisma.surveyResponse.create({
@@ -86,6 +97,9 @@ class SurveyService {
         demographicJson: demographic || {},
       },
     });
+
+    // FIX C: Store responseId in Redis keyed by tokenHash for resume lookups
+    await redis.setex(`survey:resume:${tokenHash}`, RESUME_KEY_TTL, response.id);
 
     // ConsentLog kaydet
     await prisma.consentLog.create({

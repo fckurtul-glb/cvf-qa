@@ -1,5 +1,7 @@
 import { prisma } from '../../config/database';
 import { config } from '../../config/env';
+import { decrypt } from '../../utils/encryption';
+import { redis } from '../../config/redis';
 import crypto from 'crypto';
 import { nanoid } from 'nanoid';
 import questionBank from '../../data/question-bank.json';
@@ -153,13 +155,14 @@ class Assessment360Service {
   }
 
   // ── 360° Listesi ──
+  // FIX B: select nameEncrypted/emailEncrypted instead of name/email; decrypt before returning
   async list(orgId: string) {
     const configs = await prisma.assessment360Config.findMany({
       where: { campaign: { orgId } },
       orderBy: { createdAt: 'desc' },
       include: {
         campaign: { select: { name: true } },
-        manager: { select: { id: true, name: true, email: true } },
+        manager: { select: { id: true, nameEncrypted: true, emailEncrypted: true } },
         raters: { select: { id: true, perspective: true, status: true } },
       },
     });
@@ -169,7 +172,9 @@ class Assessment360Service {
       data: configs.map((c) => ({
         id: c.id,
         campaignName: c.campaign.name,
-        managerName: c.manager.name || c.manager.email,
+        managerName:
+          (c.manager.nameEncrypted ? decrypt(c.manager.nameEncrypted) : null) ||
+          (c.manager.emailEncrypted ? decrypt(c.manager.emailEncrypted) : null),
         managerId: c.manager.id,
         status: c.status,
         createdAt: c.createdAt,
@@ -180,14 +185,15 @@ class Assessment360Service {
   }
 
   // ── 360° Detay ──
+  // FIX B: select nameEncrypted/emailEncrypted instead of name/email; decrypt before returning
   async getDetail(configId: string, orgId: string) {
     const config360 = await prisma.assessment360Config.findUnique({
       where: { id: configId },
       include: {
         campaign: { select: { name: true, orgId: true } },
-        manager: { select: { id: true, name: true, email: true } },
+        manager: { select: { id: true, nameEncrypted: true, emailEncrypted: true } },
         raters: {
-          include: { rater: { select: { id: true, name: true, email: true } } },
+          include: { rater: { select: { id: true, nameEncrypted: true, emailEncrypted: true } } },
         },
       },
     });
@@ -202,12 +208,16 @@ class Assessment360Service {
       SUPERIOR: config360.raters.filter((r) => r.perspective === 'SUPERIOR'),
     };
 
+    const managerName =
+      (config360.manager.nameEncrypted ? decrypt(config360.manager.nameEncrypted) : null) ||
+      (config360.manager.emailEncrypted ? decrypt(config360.manager.emailEncrypted) : null);
+
     return {
       success: true,
       data: {
         id: config360.id,
         campaignName: config360.campaign.name,
-        manager: { id: config360.manager.id, name: config360.manager.name || config360.manager.email },
+        manager: { id: config360.manager.id, name: managerName },
         status: config360.status,
         createdAt: config360.createdAt,
         completedAt: config360.completedAt,
@@ -219,7 +229,9 @@ class Assessment360Service {
               completed: raters.filter((r) => r.status === 'COMPLETED').length,
               raters: raters.map((r) => ({
                 id: r.id,
-                name: r.rater.name || r.rater.email,
+                name:
+                  (r.rater.nameEncrypted ? decrypt(r.rater.nameEncrypted) : null) ||
+                  (r.rater.emailEncrypted ? decrypt(r.rater.emailEncrypted) : null),
                 status: r.status,
               })),
             },
@@ -230,12 +242,13 @@ class Assessment360Service {
   }
 
   // ── 360° Rapor (Perspektif Bazlı Sonuçlar) ──
+  // FIX B: select nameEncrypted/emailEncrypted instead of name/email; decrypt before returning
   async getReport(configId: string, orgId: string) {
     const config360 = await prisma.assessment360Config.findUnique({
       where: { id: configId },
       include: {
         campaign: { select: { name: true, orgId: true } },
-        manager: { select: { name: true, email: true } },
+        manager: { select: { nameEncrypted: true, emailEncrypted: true } },
         raters: {
           where: { status: 'COMPLETED' },
           include: { rater: true },
@@ -256,31 +269,21 @@ class Assessment360Service {
     const perspectiveScores: Record<string, Record<string, { values: number[]; title: string }>> = {};
 
     for (const rater of config360.raters) {
-      // Bu rater'ın yanıtlarını bul
-      const responses = await prisma.surveyResponse.findMany({
-        where: {
-          campaignId: config360.campaignId,
-          anonymousParticipantId: { startsWith: '' }, // Tüm yanıtlar
-          status: 'COMPLETED',
-        },
-        include: { answers: { where: { moduleCode: 'M3_MSAI' } } },
-      });
-
-      // Token hash ile eşleştir
+      // Token hash ile eşleştir — Redis resume lookup (FIX C)
       if (rater.tokenId) {
         const token = await prisma.surveyToken.findUnique({ where: { id: rater.tokenId } });
         if (!token) continue;
 
-        const matchingResponse = await prisma.surveyResponse.findFirst({
-          where: {
-            campaignId: config360.campaignId,
-            anonymousParticipantId: { startsWith: token.tokenHash.substring(0, 12) },
-            status: 'COMPLETED',
-          },
+                // Look up responseId stored by recordConsent in Redis (FIX C: no prefix leak)
+        const resumeResponseId = await redis.get(`survey:resume:${token.tokenHash}`);
+        if (!resumeResponseId) continue;
+
+        const matchingResponse = await prisma.surveyResponse.findUnique({
+          where: { id: resumeResponseId },
           include: { answers: { where: { moduleCode: 'M3_MSAI' } } },
         });
+        if (!matchingResponse || matchingResponse.status !== 'COMPLETED') continue;
 
-        if (!matchingResponse) continue;
 
         const perspective = rater.perspective;
         if (!perspectiveScores[perspective]) perspectiveScores[perspective] = {};
@@ -376,11 +379,15 @@ class Assessment360Service {
     const strengths = rankedSubdims.slice(0, 5);
     const developmentAreas = [...rankedSubdims].sort((a, b) => a.mean - b.mean).slice(0, 5);
 
+    const managerName =
+      (config360.manager.nameEncrypted ? decrypt(config360.manager.nameEncrypted) : null) ||
+      (config360.manager.emailEncrypted ? decrypt(config360.manager.emailEncrypted) : null);
+
     return {
       success: true,
       data: {
         configId,
-        managerName: config360.manager.name || config360.manager.email,
+        managerName,
         campaignName: config360.campaign.name,
         perspectives: report,
         blindSpots,

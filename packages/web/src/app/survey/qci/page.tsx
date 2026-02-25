@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import questionBank from '../../../data/question-bank.json';
 import { LikertSurvey, type LikertQuestion } from '../../../components/survey/likert-survey';
 
-const API = 'http://localhost:3001';
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 const QCI = questionBank.modules.M2_QCI;
 
 const QUESTIONS: LikertQuestion[] = QCI.subdimensions.flatMap((sub) =>

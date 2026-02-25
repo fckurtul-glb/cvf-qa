@@ -229,6 +229,7 @@ model Assessment360Rater {
   rater  User                @relation(fields: [raterUserId], references: [id])
 
   @@unique([configId, raterUserId])
+  @@index([configId, status])
   @@map("assessment_360_raters")
 }
 
@@ -271,6 +272,7 @@ model AuditLog {
   // IMMUTABLE — silinemez, değiştirilemez
   @@index([orgId, timestamp])
   @@index([userId, action])
+  @@index([orgId, action])
   @@map("audit_logs")
 }
 

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import questionBank from '../../../data/question-bank.json';
 
-const API = 'http://localhost:3001';
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 const OCAI = questionBank.modules.M1_OCAI;
 const DIMENSIONS = OCAI.dimensions;
