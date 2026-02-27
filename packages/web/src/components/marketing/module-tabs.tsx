@@ -1,5 +1,8 @@
+'use client';
+
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { motion } from 'framer-motion';
 
 const modules = [
   {
@@ -56,44 +59,58 @@ export function ModuleTabs() {
   return (
     <section className="py-20">
       <div className="container mx-auto px-4">
-        <div className="mx-auto mb-12 max-w-2xl text-center">
+        <motion.div
+          className="mx-auto mb-12 max-w-2xl text-center"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+        >
           <h2 className="mb-4 font-display text-3xl font-bold text-navy md:text-4xl">6 Bilimsel Ölçek</h2>
           <p className="text-lg text-muted-foreground">
             Her biri akademik geçerliliği kanıtlanmış, Türkiye yükseköğretim sistemine uyarlanmış.
           </p>
-        </div>
+        </motion.div>
 
         <div className="mx-auto grid max-w-6xl gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {modules.map((m) => (
-            <Card key={m.id} className="border shadow-md transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5">
-              <CardContent className="p-6">
-                <div className="mb-4 flex items-center gap-3">
-                  <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${m.color} text-sm font-bold text-white`}>
-                    {m.id}
+          {modules.map((m, i) => (
+            <motion.div
+              key={m.id}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: i * 0.08 }}
+            >
+              <Card className="border shadow-md transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5">
+                <CardContent className="p-6">
+                  <div className="mb-4 flex items-center gap-3">
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${m.color} text-sm font-bold text-white`}>
+                      {m.id}
+                    </div>
+                    <div>
+                      <div className="font-semibold text-navy">{m.code}</div>
+                      {m.original && <Badge variant="accent" className="text-[10px]">Özgün</Badge>}
+                    </div>
                   </div>
-                  <div>
-                    <div className="font-semibold text-navy">{m.code}</div>
-                    {m.original && <Badge variant="accent" className="text-[10px]">Özgün</Badge>}
+                  <h3 className="mb-2 text-lg font-semibold text-navy">{m.name}</h3>
+                  <p className="mb-4 text-sm leading-relaxed text-muted-foreground">{m.description}</p>
+                  <div className="mb-3 flex items-baseline gap-2">
+                    <span className="text-2xl font-bold text-primary">{m.items}</span>
+                    <span className="text-xs text-muted-foreground">soru &middot; {m.format}</span>
                   </div>
-                </div>
-                <h3 className="mb-2 text-lg font-semibold text-navy">{m.name}</h3>
-                <p className="mb-4 text-sm leading-relaxed text-muted-foreground">{m.description}</p>
-                <div className="mb-3 flex items-baseline gap-2">
-                  <span className="text-2xl font-bold text-primary">{m.items}</span>
-                  <span className="text-xs text-muted-foreground">soru &middot; {m.format}</span>
-                </div>
-                <div className="mb-3 flex flex-wrap gap-1">
-                  {m.dimensions.map((d) => (
-                    <Badge key={d} variant="outline" className="text-xs">{d}</Badge>
-                  ))}
-                </div>
-                <div className="flex flex-wrap gap-1">
-                  {m.yokak.map((y) => (
-                    <Badge key={y} variant="accent" className="text-xs">{y}</Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                  <div className="mb-3 flex flex-wrap gap-1">
+                    {m.dimensions.map((d) => (
+                      <Badge key={d} variant="outline" className="text-xs">{d}</Badge>
+                    ))}
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {m.yokak.map((y) => (
+                      <Badge key={y} variant="accent" className="text-xs">{y}</Badge>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
           ))}
         </div>
       </div>

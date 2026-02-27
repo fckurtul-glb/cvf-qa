@@ -53,6 +53,7 @@
   --font-display: var(--font-playfair);
   --font-body: var(--font-dm-sans);
   --font-mono: var(--font-jetbrains);
+  --font-sans: var(--font-inter);
 
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
@@ -107,7 +108,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 240 28% 14%;
 
-    --primary: 204 49% 29%;
+    --primary: 55 23% 61%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 200 43% 39%;
@@ -202,5 +203,28 @@
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
     font-family: var(--font-body), system-ui, -apple-system, sans-serif;
+  }
+}
+
+@layer utilities {
+  .dot-grid {
+    background-image: radial-gradient(circle, #e5e7eb 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  .dot-grid-dark {
+    background-image: radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #e5e7eb;
+    border-radius: 2px;
   }
 }

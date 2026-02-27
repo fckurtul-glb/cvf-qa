@@ -1,3 +1,7 @@
+'use client';
+
+import { motion } from 'framer-motion';
+
 const steps = [
   { number: '01', title: 'Bağlan', description: 'Modüllerinizi seçin, hedef grupları belirleyin, tek tıkla anket linklerini gönderin.' },
   { number: '02', title: 'Ölç', description: 'Katılımcılar anonim olarak bilimsel ölçekleri tamamlar. Otomatik hatırlatma ve ilerleme takibi.' },
@@ -10,14 +14,27 @@ export function SolutionSteps() {
   return (
     <section className="py-20">
       <div className="container mx-auto px-4">
-        <div className="mx-auto mb-12 max-w-2xl text-center">
+        <motion.div
+          className="mx-auto mb-12 max-w-2xl text-center"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+        >
           <h2 className="mb-4 font-display text-3xl font-bold text-navy md:text-4xl">Nasıl Çalışır?</h2>
           <p className="text-lg text-muted-foreground">5 adımda kurumsal kültür değerlendirmenizi tamamlayın.</p>
-        </div>
+        </motion.div>
 
         <div className="mx-auto grid max-w-6xl gap-8 md:grid-cols-3 lg:grid-cols-5">
           {steps.map((step, i) => (
-            <div key={step.number} className="relative text-center">
+            <motion.div
+              key={step.number}
+              className="relative text-center"
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: i * 0.1 }}
+            >
               {i < steps.length - 1 && (
                 <div className="absolute top-7 left-[calc(50%+28px)] hidden h-0.5 w-[calc(100%-56px)] bg-gradient-to-r from-secondary/30 to-secondary/10 lg:block" />
               )}
@@ -26,7 +43,7 @@ export function SolutionSteps() {
               </div>
               <h3 className="mb-2 font-semibold text-navy">{step.title}</h3>
               <p className="text-sm leading-relaxed text-muted-foreground">{step.description}</p>
-            </div>
+            </motion.div>
           ))}
         </div>
       </div>

@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Playfair_Display, DM_Sans, JetBrains_Mono } from 'next/font/google';
+import { Playfair_Display, DM_Sans, JetBrains_Mono, Inter } from 'next/font/google';
 import '@/styles/globals.css';
 import { Toaster } from '@/components/ui/toaster';
 
@@ -18,6 +18,12 @@ const dmSans = DM_Sans({
 const jetbrainsMono = JetBrains_Mono({
   subsets: ['latin', 'latin-ext'],
   variable: '--font-jetbrains',
+  display: 'swap',
+});
+
+const inter = Inter({
+  subsets: ['latin', 'latin-ext'],
+  variable: '--font-inter',
   display: 'swap',
 });
 
@@ -100,7 +106,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
-      <body className={`${playfair.variable} ${dmSans.variable} ${jetbrainsMono.variable} min-h-screen bg-background font-body antialiased`}>
+      <body className={`${playfair.variable} ${dmSans.variable} ${jetbrainsMono.variable} ${inter.variable} min-h-screen bg-background font-body antialiased`}>
         {children}
         <Toaster />
       </body>

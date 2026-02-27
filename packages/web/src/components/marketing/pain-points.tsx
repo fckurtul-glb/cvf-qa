@@ -1,4 +1,7 @@
+'use client';
+
 import { Card, CardContent } from '@/components/ui/card';
+import { motion } from 'framer-motion';
 
 const statistics = [
   {
@@ -25,22 +28,36 @@ export function PainPoints() {
   return (
     <section className="bg-icy/20 py-20">
       <div className="container mx-auto px-4">
-        <div className="mx-auto mb-12 max-w-2xl text-center">
+        <motion.div
+          className="mx-auto mb-12 max-w-2xl text-center"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+        >
           <h2 className="mb-4 font-display text-3xl font-bold text-navy md:text-4xl">Neden CVF-QA?</h2>
           <p className="text-lg text-muted-foreground">
             Yükseköğretim kurumlarının kültür değerlendirme süreçlerindeki en büyük sorunları çözüyoruz.
           </p>
-        </div>
+        </motion.div>
         <div className="mx-auto grid max-w-5xl gap-6 md:grid-cols-3">
-          {statistics.map((item) => (
-            <Card key={item.title} className="border-0 bg-white shadow-md transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5">
-              <CardContent className="p-6 text-center">
-                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-2xl">{item.icon}</div>
-                <div className="mb-2 font-display text-4xl font-bold text-accent">{item.stat}</div>
-                <h3 className="mb-2 text-lg font-semibold text-navy">{item.title}</h3>
-                <p className="leading-relaxed text-muted-foreground">{item.description}</p>
-              </CardContent>
-            </Card>
+          {statistics.map((item, i) => (
+            <motion.div
+              key={item.title}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: i * 0.1 }}
+            >
+              <Card className="border-0 bg-white shadow-md transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5">
+                <CardContent className="p-6 text-center">
+                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-2xl">{item.icon}</div>
+                  <div className="mb-2 font-display text-4xl font-bold text-accent">{item.stat}</div>
+                  <h3 className="mb-2 text-lg font-semibold text-navy">{item.title}</h3>
+                  <p className="leading-relaxed text-muted-foreground">{item.description}</p>
+                </CardContent>
+              </Card>
+            </motion.div>
           ))}
         </div>
       </div>

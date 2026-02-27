@@ -2,8 +2,19 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { 
+  Users, 
+  Send, 
+  BarChart3, 
+  TrendingUp, 
+  Calendar,
+  ChevronRight,
+  ArrowUpRight
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const API = 'http://localhost:3001';
+const SAGE_GREEN = '#b2ac88';
 
 interface UserProfile {
   id: string;
@@ -65,126 +76,251 @@ export default function DashboardPage() {
       });
   }, [router]);
 
-  if (loading) return <div style={{ padding: 40, textAlign: 'center', color: '#888' }}>Yükleniyor...</div>;
+  if (loading) {
+    return (
+      <div className="flex h-[60vh] flex-col items-center justify-center gap-4">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-[#b2ac88]" />
+        <p className="text-sm font-medium text-slate-500">Sistem verileri hazırlanıyor...</p>
+      </div>
+    );
+  }
+
   if (!user) return null;
 
   const s = dashboard?.stats;
 
   return (
-    <div style={{ padding: '24px 0' }}>
-      {/* Welcome */}
-      <div style={{ marginBottom: 28 }}>
-        <h1 style={{ fontSize: 26, fontWeight: 700, color: '#0F1D2F', margin: '0 0 4px' }}>
+    <div className="space-y-8 pb-12">
+      {/* Welcome & Context */}
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[#b2ac88]">
+          <div className="h-1 w-1 rounded-full bg-[#b2ac88]" />
+          Yönetim Paneli
+        </div>
+        <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
           Hoş geldiniz{user.name ? `, ${user.name}` : ''}
         </h1>
-        <p style={{ fontSize: 14, color: '#888', margin: 0 }}>{user.organization.name}</p>
+        <p className="text-sm text-slate-500 font-medium">{user.organization.name} — Kalite Güvence ve Akreditasyon Takibi</p>
       </div>
 
       {/* 4 Stats Cards */}
       {s && (
-        <div style={styles.statsGrid}>
-          <StatCard label="Toplam Kampanya" value={s.totalCampaigns} color="#2E86AB" />
-          <StatCard label="Aktif Kampanya" value={s.activeCampaigns} color="#27AE60" />
-          <StatCard label="Toplam Yanıt" value={s.totalResponses} color="#7B2D8E" />
-          <StatCard label="Ort. Yanıt Oranı" value={`%${s.avgResponseRate}`} color="#E67E22" />
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard 
+            label="Toplam Kampanya" 
+            value={s.totalCampaigns} 
+            icon={Send} 
+            trend="+2 bu ay"
+          />
+          <StatCard 
+            label="Aktif Kampanya" 
+            value={s.activeCampaigns} 
+            icon={Calendar}
+            status="active"
+          />
+          <StatCard 
+            label="Toplam Yanıt" 
+            value={s.totalResponses} 
+            icon={Users}
+            trend="+124 yeni"
+          />
+          <StatCard 
+            label="Ort. Yanıt Oranı" 
+            value={`%${s.avgResponseRate}`} 
+            icon={TrendingUp}
+            isPercentage
+          />
         </div>
       )}
 
-      {/* Daily Trend Chart (simple bar chart) */}
-      {dashboard?.dailyTrend && (
-        <div style={styles.card}>
-          <h3 style={styles.cardTitle}>Son 7 Gün Yanıt Trendi</h3>
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 120 }}>
-            {dashboard.dailyTrend.map((d) => {
-              const maxCount = Math.max(...dashboard.dailyTrend.map((t) => t.count), 1);
-              const height = Math.max((d.count / maxCount) * 100, 4);
-              const dayLabel = new Date(d.date).toLocaleDateString('tr-TR', { weekday: 'short' });
-              return (
-                <div key={d.date} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: '#0F1D2F' }}>{d.count}</span>
-                  <div style={{
-                    width: '100%', height: `${height}%`, background: 'linear-gradient(180deg, #2E86AB, #3A9BC5)',
-                    borderRadius: '4px 4px 0 0', minHeight: 4,
-                  }} />
-                  <span style={{ fontSize: 11, color: '#888' }}>{dayLabel}</span>
-                </div>
-              );
-            })}
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+        {/* Daily Trend Chart (Left/Main) */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="rounded-3xl border border-slate-100 bg-white p-8 shadow-sm transition-all hover:shadow-md">
+            <div className="mb-8 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Yanıt Trendi</h3>
+                <p className="text-xs font-medium text-slate-400">Son 7 günlük katılım yoğunluğu</p>
+              </div>
+              <div className="flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-1.5 text-[10px] font-bold text-slate-600">
+                GÜNLÜK VERİ
+              </div>
+            </div>
+
+            <div className="flex items-end gap-3 h-48">
+              {dashboard?.dailyTrend.map((d) => {
+                const maxCount = Math.max(...dashboard.dailyTrend.map((t) => t.count), 1);
+                const height = Math.max((d.count / maxCount) * 100, 8);
+                const dayLabel = new Date(d.date).toLocaleDateString('tr-TR', { weekday: 'short' });
+                return (
+                  <div key={d.date} className="group relative flex flex-1 flex-col items-center gap-3">
+                    <div 
+                      className="w-full rounded-xl transition-all duration-500 ease-out group-hover:opacity-80"
+                      style={{ 
+                        height: `${height}%`, 
+                        backgroundColor: d.count > 0 ? SAGE_GREEN : '#f1f5f9',
+                        boxShadow: d.count > 0 ? `0 4px 12px ${SAGE_GREEN}40` : 'none'
+                      }} 
+                    />
+                    <div className="flex flex-col items-center gap-0.5">
+                      <span className="text-[10px] font-bold text-slate-900">{d.count}</span>
+                      <span className="text-[10px] font-medium uppercase text-slate-400">{dayLabel}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Active Campaigns Table */}
+          <div className="rounded-3xl border border-slate-100 bg-white shadow-sm transition-all hover:shadow-md overflow-hidden">
+            <div className="border-b border-slate-50 p-6 flex items-center justify-between">
+              <h3 className="text-lg font-bold text-slate-900">Aktif Kampanyalar</h3>
+              <button className="text-[10px] font-bold uppercase tracking-widest text-[#b2ac88] hover:underline">
+                Tümünü Gör
+              </button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50/50">
+                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">Kampanya Adı</th>
+                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400 text-center">Hedef</th>
+                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400 text-center">Katılım</th>
+                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400 text-center">Performans</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dashboard?.activeCampaigns.map((c) => (
+                    <tr 
+                      key={c.id} 
+                      onClick={() => router.push(`/dashboard/campaigns/${c.id}`)} 
+                      className="group cursor-pointer border-b border-slate-50 transition-colors hover:bg-slate-50/50"
+                    >
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                          <span className="text-sm font-bold text-slate-900">{c.name}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-center text-sm font-medium text-slate-500">{c.totalInvited}</td>
+                      <td className="px-6 py-4 text-center text-sm font-medium text-slate-500">{c.totalResponses}</td>
+                      <td className="px-6 py-4 text-center">
+                        <div className="inline-flex items-center gap-1.5 rounded-full bg-[#b2ac88]/10 px-3 py-1 text-[11px] font-bold text-[#b2ac88]">
+                          %{c.rate}
+                          <ArrowUpRight className="h-3 w-3" />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
-      )}
 
-      {/* Active Campaigns Table */}
-      {dashboard?.activeCampaigns && dashboard.activeCampaigns.length > 0 && (
-        <div style={styles.card}>
-          <h3 style={styles.cardTitle}>Aktif Kampanyalar</h3>
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                <th style={styles.th}>Kampanya</th>
-                <th style={{ ...styles.th, textAlign: 'center' }}>Davet</th>
-                <th style={{ ...styles.th, textAlign: 'center' }}>Yanıt</th>
-                <th style={{ ...styles.th, textAlign: 'center' }}>Oran</th>
-              </tr>
-            </thead>
-            <tbody>
-              {dashboard.activeCampaigns.map((c) => (
-                <tr key={c.id} onClick={() => router.push(`/dashboard/campaigns/${c.id}`)} style={{ cursor: 'pointer' }}>
-                  <td style={{ ...styles.td, fontWeight: 600 }}>{c.name}</td>
-                  <td style={{ ...styles.td, textAlign: 'center' }}>{c.totalInvited}</td>
-                  <td style={{ ...styles.td, textAlign: 'center' }}>{c.totalResponses}</td>
-                  <td style={{ ...styles.td, textAlign: 'center', fontWeight: 700, color: '#27AE60' }}>%{c.rate}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* Latest Responses */}
-      {dashboard?.latestResponses && dashboard.latestResponses.length > 0 && (
-        <div style={styles.card}>
-          <h3 style={styles.cardTitle}>Son Yanıtlar</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {dashboard.latestResponses.map((r) => (
-              <div key={r.id} style={styles.responseItem}>
-                <div>
-                  <span style={{ fontWeight: 600, color: '#0F1D2F', fontSize: 14 }}>{r.campaignName}</span>
-                  <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
-                    {r.modules.map((m) => (
-                      <span key={m} style={styles.moduleBadge}>{MODULE_LABELS[m] || m}</span>
-                    ))}
+        {/* Sidebar Style (Right side of page) - Latest Activity */}
+        <div className="space-y-6">
+          <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm transition-all hover:shadow-md">
+            <h3 className="mb-6 text-lg font-bold text-slate-900">Son Aktiviteler</h3>
+            <div className="space-y-6 relative before:absolute before:left-3 before:top-2 before:h-[calc(100%-16px)] before:w-[1px] before:bg-slate-100">
+              {dashboard?.latestResponses.map((r) => (
+                <div key={r.id} className="relative pl-8 group">
+                  <div className="absolute left-1.5 top-1.5 h-3 w-3 rounded-full border-2 border-white bg-slate-200 group-hover:bg-[#b2ac88] transition-colors shadow-sm" />
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-xs font-bold text-slate-900 group-hover:text-[#b2ac88] transition-colors">
+                      Yeni Yanıt Alındı
+                    </span>
+                    <p className="text-[11px] font-medium text-slate-400 truncate">
+                      {r.campaignName}
+                    </p>
+                    <div className="flex flex-wrap gap-1.5 mt-1">
+                      {r.modules.map((m) => (
+                        <span key={m} className="rounded-md bg-slate-50 px-2 py-0.5 text-[9px] font-bold text-slate-500 uppercase border border-slate-100">
+                          {MODULE_LABELS[m] || m}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-1.5 mt-1 text-[10px] font-bold text-slate-400">
+                      <BarChart3 className="h-3 w-3" />
+                      {r.completedAt ? new Date(r.completedAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : '—'}
+                    </div>
                   </div>
                 </div>
-                <span style={{ fontSize: 12, color: '#888' }}>
-                  {r.completedAt ? new Date(r.completedAt).toLocaleString('tr-TR') : '—'}
-                </span>
-              </div>
-            ))}
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-3xl bg-slate-900 p-8 text-white shadow-xl shadow-slate-200 overflow-hidden relative group">
+            <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-[#b2ac88]/20 blur-2xl group-hover:bg-[#b2ac88]/30 transition-all duration-700" />
+            <div className="relative z-10">
+              <h4 className="text-sm font-bold uppercase tracking-widest text-[#b2ac88]">Hızlı Erişim</h4>
+              <p className="mt-2 text-xl font-bold">Raporlar Hazır</p>
+              <p className="mt-2 text-xs text-slate-400 leading-relaxed font-medium">
+                Son kampanya analizleri tamamlandı. Birim bazlı raporları şimdi inceleyin.
+              </p>
+              <button className="mt-6 flex w-full items-center justify-between rounded-xl bg-white px-4 py-3 text-sm font-bold text-slate-900 transition-all hover:bg-white/90">
+                Raporlara Git
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
 
-function StatCard({ label, value, color }: { label: string; value: string | number; color: string }) {
+function StatCard({ 
+  label, 
+  value, 
+  icon: Icon, 
+  trend, 
+  status,
+  isPercentage 
+}: { 
+  label: string; 
+  value: string | number; 
+  icon: any;
+  trend?: string;
+  status?: 'active' | 'idle';
+  isPercentage?: boolean;
+}) {
   return (
-    <div style={{ ...styles.statCard, borderTopColor: color }}>
-      <div style={{ fontSize: 12, fontWeight: 500, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
-      <div style={{ fontSize: 32, fontWeight: 800, color, marginTop: 4 }}>{value}</div>
+    <div className="group relative rounded-3xl border border-slate-100 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+      <div className="flex items-center justify-between">
+        <div 
+          className="flex h-10 w-10 items-center justify-center rounded-2xl transition-colors duration-300"
+          style={{ backgroundColor: `${SAGE_GREEN}15` }}
+        >
+          <Icon className="h-5 w-5" style={{ color: SAGE_GREEN }} />
+        </div>
+        {status === 'active' && (
+          <div className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-1 text-[9px] font-bold text-emerald-600">
+            <div className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse" />
+            AKTİF
+          </div>
+        )}
+      </div>
+      
+      <div className="mt-6">
+        <div className="text-xs font-bold uppercase tracking-wider text-slate-400">
+          {label}
+        </div>
+        <div className="mt-1 flex items-baseline gap-2">
+          <span className="text-2xl font-black text-slate-900">{value}</span>
+          {trend && (
+            <span className="text-[10px] font-bold text-[#b2ac88]">
+              {trend}
+            </span>
+          )}
+        </div>
+      </div>
+      
+      {/* Structural accent */}
+      <div className="absolute bottom-4 right-6 opacity-0 transition-opacity group-hover:opacity-100">
+        <ArrowUpRight className="h-4 w-4 text-slate-200" />
+      </div>
     </div>
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 },
-  statCard: { background: '#fff', border: '1px solid #e0e0e0', borderTop: '3px solid', borderRadius: 10, padding: '16px 20px' },
-  card: { background: '#fff', border: '1px solid #e0e0e0', borderRadius: 10, padding: '20px 24px', marginBottom: 16 },
-  cardTitle: { fontSize: 16, fontWeight: 600, color: '#0F1D2F', margin: '0 0 16px' },
-  table: { width: '100%', borderCollapse: 'collapse', fontSize: 14 },
-  th: { textAlign: 'left', padding: '10px 14px', fontSize: 12, fontWeight: 600, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '2px solid #e0e0e0', background: '#fafafa' },
-  td: { padding: '12px 14px', borderBottom: '1px solid #f0f0f0', color: '#0F1D2F' },
-  responseItem: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #f0f0f0' },
-  moduleBadge: { display: 'inline-block', padding: '2px 8px', fontSize: 11, fontWeight: 600, color: '#2E86AB', background: '#E8F4FD', borderRadius: 6 },
-};
