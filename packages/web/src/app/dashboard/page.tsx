@@ -49,8 +49,14 @@ export default function DashboardPage() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [dashboard, setDashboard] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
     const token = localStorage.getItem('token');
     if (!token) { router.replace('/auth/login'); return; }
 
@@ -74,9 +80,9 @@ export default function DashboardPage() {
         localStorage.removeItem('token');
         router.replace('/auth/login');
       });
-  }, [router]);
+  }, [router, mounted]);
 
-  if (loading) {
+  if (!mounted || loading) {
     return (
       <div className="flex h-[60vh] flex-col items-center justify-center gap-4">
         <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-[#b2ac88]" />
